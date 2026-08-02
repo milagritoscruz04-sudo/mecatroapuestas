@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Creadores - MECATROAPUESTAS</title>
+    <style>
+        body { background: #09090b; color: white; font-family: sans-serif; padding: 20px; }
+        h1 { color: #ef4444; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background: #18181b; }
+        th, td { border: 1px solid #27272a; padding: 10px; text-align: center; }
+        th { background: #27272a; color: #ef4444; }
+        a { color: #ef4444; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>⚙️ Panel de Control Creadores (MECATROAPUESTAS)</h1>
+    <a href="/">⬅️ Volver a la Ruleta</a>
+    <br><br>
+
+    <h2>👥 Usuarios Registrados</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Contraseña</th>
+                <th>Saldo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr>
+                <td><b>{{ u.id }}</b></td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.password }}</td>
+                <td style="color: #22c55e;">S/ {{ u.saldo }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>📋 Historial General de Apuestas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Monto</th>
+                <th>Elegido</th>
+                <th>Ganador</th>
+                <th>Resultado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in historial %}
+            <tr>
+                <td>{{ h.usuario_id }}</td>
+                <td>{{ h.username }}</td>
+                <td>S/ {{ h.monto }}</td>
+                <td>{{ h.numero_elegido }} ({{ h.color_elegido }})</td>
+                <td>{{ h.numero_ganador }} ({{ h.color_ganador }})</td>
+                <td style="color: {{ '#22c55e' if h.resultado == 'GANASTE' else '#ef4444' }}; font-weight:bold;">{{ h.resultado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MECATROAPUESTAS - Casino Ruleta</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+body { 
+    background-image: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)), url("{{ url_for('static', filename='fondoindex.png') }}");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: #f8fafc; 
+    padding: 15px; 
+    min-height: 100vh;
+}
+        
+        .header { display: flex; justify-content: space-between; align-items: center; max-width: 650px; margin: 0 auto 15px; padding: 14px 20px; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(10px); border-radius: 14px; border: 1px solid #27272a; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.15); }
+        .burger-btn { background: none; border: none; color: #f8fafc; font-size: 24px; cursor: pointer; }
+        .brand-title { font-size: 20px; font-weight: 900; color: #ef4444; letter-spacing: 1.5px; text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 99; backdrop-filter: blur(4px); }
+        .sidebar { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #18181b; z-index: 100; transition: left 0.3s ease; padding: 25px 20px; border-right: 1px solid #27272a; display: flex; flex-direction: column; }
+        .sidebar.active { left: 0; }
+        .sidebar-overlay.active { display: block; }
+        
+        .profile-card { background: #09090b; padding: 20px; border-radius: 12px; border: 1px solid #27272a; text-align: center; margin-bottom: 25px; }
+        .avatar { width: 65px; height: 65px; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; font-size: 26px; font-weight: bold; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; border: 2px solid #ef4444; }
+        .menu-btn { width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #cbd5e1; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 8px; margin-bottom: 8px; }
+        .menu-btn:hover { background: #27272a; color: #ef4444; }
+        .logout-link { color: #ef4444; text-decoration: none; font-weight: 600; padding: 12px; display: block; text-align: center; border: 1px solid #ef4444; border-radius: 8px; margin-top: auto; }
+
+        .mode-tabs { display: flex; max-width: 650px; margin: 0 auto 15px; gap: 10px; }
+        .tab-btn { flex: 1; padding: 14px; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(10px); border: 1px solid #27272a; color: #a1a1aa; font-weight: 700; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; transition: 0.2s; }
+        .tab-btn.active { background: #dc2626; color: white; border-color: #ef4444; box-shadow: 0 0 12px rgba(220, 38, 38, 0.4); }
+
+        .card { max-width: 650px; margin: 0 auto; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.2); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        .saldo-box { text-align: center; background: rgba(9, 9, 11, 0.8); padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #27272a; }
+        .saldo-box label { font-size: 11px; color: #a1a1aa; letter-spacing: 1.5px; font-weight: bold; }
+        .saldo-box .monto { font-size: 34px; color: #22c55e; font-weight: 900; text-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
+
+        .section-title { font-size: 12px; color: #a1a1aa; margin: 15px 0 8px; font-weight: 800; letter-spacing: 1px; }
+
+        .color-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .color-selector label { flex: 1; text-align: center; padding: 14px 5px; background: rgba(9, 9, 11, 0.8); border: 2px solid #27272a; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 14px; transition: 0.2s; }
+        .color-selector input { display: none; }
+        .color-selector label.rojo { color: #ef4444; }
+        .color-selector label.negro { color: #e4e4e7; }
+        .color-selector label.verde { color: #22c55e; }
+        .color-selector input:checked + label.rojo { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+        .color-selector input:checked + label.negro { border-color: #a1a1aa; background: rgba(255, 255, 255, 0.15); }
+        .color-selector input:checked + label.verde { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); }
+
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        select, input[type="number"] { width: 100%; padding: 12px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 8px; color: white; font-size: 15px; outline: none; }
+
+        .effects-box { display: flex; justify-content: space-around; background: rgba(9, 9, 11, 0.8); padding: 12px; border-radius: 10px; border: 1px solid #27272a; margin-top: 15px; }
+        .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #27272a; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #dc2626; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .btn-action { width: 100%; padding: 16px; background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); border: none; border-radius: 10px; color: white; font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 18px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); }
+        .btn-secondary { width: 100%; padding: 14px; background: #27272a; border: 1px solid #ef4444; border-radius: 10px; color: #ef4444; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 15px; }
+
+        .mesa-box { background: rgba(9, 9, 11, 0.8); border-radius: 10px; border: 1px solid #27272a; padding: 15px; margin-top: 20px; }
+        .mesa-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #18181b; font-size: 13px; }
+
+        #resultado { text-align: center; margin-top: 15px; min-height: 48px; padding: 12px; background: rgba(9, 9, 11, 0.8); border-radius: 8px; font-size: 15px; border: 1px dashed #27272a; display: flex; align-items: center; justify-content: center; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 101; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: #18181b; border-radius: 16px; border: 1px solid #27272a; padding: 20px; width: 100%; max-width: 550px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #27272a; padding-bottom: 10px; }
+        .close-btn { background: none; border: none; color: #a1a1aa; font-size: 20px; cursor: pointer; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid #27272a; }
+        th { color: #a1a1aa; font-weight: 600; }
+        .win { color: #22c55e; font-weight: bold; }
+        .loss { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="burger-btn" onclick="toggleMenu()">☰</button>
+        <div class="brand-title">MECATROAPUESTAS</div>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <div class="mode-tabs">
+        <div class="tab-btn active" id="tabInd" onclick="cambiarModo('individual')">👤 INDIVIDUAL</div>
+        <div class="tab-btn" id="tabSala" onclick="cambiarModo('sala')">👥 SALA MULTIJUGADOR</div>
+    </div>
+
+    <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="profile-card">
+            <div class="avatar">{{ usuario[0].upper() }}</div>
+            <h3 style="color: white; font-size: 18px;">{{ usuario }}</h3>
+            <p style="color: #ef4444; font-size: 13px; font-weight: bold; margin-top: 4px;">ID: {{ user_id }}</p>
+        </div>
+
+        <div class="menu-items">
+            <button class="menu-btn" onclick="openHistorial()">📋Mis apuestas (Historial)</button>
+            {% if usuario == 'admin' %}
+            <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e;">Panel Admin Creadores</a>
+            {% endif %}
+        </div>
+
+        <a href="/logout" class="logout-link">Cerrar Sesión</a>
+    </div>
+
+    <div class="card">
+        <div class="saldo-box">
+            <label>MI SALDO DISPONIBLE</label>
+            <div class="monto">S/ <span id="saldo">{{ saldo }}</span></div>
+        </div>
+
+        <div class="section-title">1. SELECCIONA COLOR</div>
+        <div class="color-selector">
+            <input type="radio" name="color" id="c_rojo" value="Rojo" checked onchange="actualizarNumeros()">
+            <label for="c_rojo" class="rojo">🔴 Rojo</label>
+            
+            <input type="radio" name="color" id="c_negro" value="Negro" onchange="actualizarNumeros()">
+            <label for="c_negro" class="negro">⚫ Negro</label>
+            
+            <input type="radio" name="color" id="c_verde" value="Verde" onchange="actualizarNumeros()">
+            <label for="c_verde" class="verde">🟢 Verde</label>
+        </div>
+
+        <div class="controls">
+            <div>
+                <div class="section-title" style="margin-top:0;">2. NÚMERO</div>
+                <select id="numero"></select>
+            </div>
+            <div>
+                <div class="section-title" style="margin-top:0;">3. MONTO</div>
+                <input type="number" id="apuesta" placeholder="Ej: 20">
+            </div>
+        </div>
+
+        <div id="seccion_individual">
+            <div class="section-title">EFECTOS RULETA</div>
+            <div class="effects-box">
+                <div class="toggle-item">
+                    <span>Sonido</span>
+                    <label class="switch">
+                        <input type="checkbox" id="efecto_sonido" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>Luces LED</span>
+                    <label class="switch">
+                        <input type="checkbox" id="efecto_luces" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button class="btn-action" onclick="jugarIndividual()">🎲 APOSTAR Y GIRAR RULETA</button>
+        </div>
+
+        <div id="seccion_sala" style="display: none;">
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 15px; color: #f8fafc; text-align: center;">
+                ⚡ <b>SALA GRUPAL:</b> Los efectos físicos de la ruleta están <b>ACTIVADOS</b> para la mesa.
+            </div>
+
+            <button class="btn-secondary" onclick="registrarEnMesa()">➕ REGISTRAR MI APUESTA EN LA MESA</button>
+
+            <div class="mesa-box">
+                <div style="font-size: 12px; font-weight: bold; color: #ef4444; margin-bottom: 10px;">👥 APUESTAS EN MESA:</div>
+                <div id="lista_apuestas">
+                    <i style="color: #a1a1aa; font-size: 13px;">No hay apuestas registradas en la mesa.</i>
+                </div>
+            </div>
+
+            <button class="btn-action" onclick="girarParaTodos()">🎲 GIRAR RULETA PARA TODOS</button>
+        </div>
+
+        <div id="resultado">Selecciona tus opciones para comenzar.</div>
+    </div>
+
+    <!-- Modal Historial -->
+    <div class="modal" id="modalHistorial">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: white;">📋 Historial Personal</h3>
+                <button class="close-btn" onclick="closeHistorial()">✕</button>
+            </div>
+            <table id="historial">
+                <thead>
+                    <tr>
+                        <th>Elegido</th>
+                        <th>Color</th>
+                        <th>Monto</th>
+                        <th>Ganador</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in historial %}
+                    <tr>
+                        <td>{{ row.numero_elegido }}</td>
+                        <td>{{ row.color_elegido }}</td>
+                        <td>S/ {{ row.monto }}</td>
+                        <td>{{ row.numero_ganador }} ({{ row.color_ganador }})</td>
+                        <td class="{{ 'win' if row.resultado == 'GANASTE' else 'loss' }}">{{ row.resultado }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const numerosPorColor = {
+            'Verde': [0],
+            'Negro': [8, 23, 5, 2, 7, 3, 4, 9, 15, 14, 20, 13],
+            'Rojo': [10, 16, 18, 12, 21, 22, 19, 1, 11, 17, 6]
+        };
+
+        function actualizarNumeros() {
+            const colorSeleccionado = document.querySelector('input[name="color"]:checked').value;
+            const selectNumero = document.getElementById("numero");
+            selectNumero.innerHTML = "";
+
+            numerosPorColor[colorSeleccionado].forEach(num => {
+                const opt = document.createElement("option");
+                opt.value = num;
+                opt.textContent = num;
+                selectNumero.appendChild(opt);
+            });
+        }
+        actualizarNumeros();
+
+        function toggleMenu() {
+            document.getElementById("sidebar").classList.toggle("active");
+            document.getElementById("overlay").classList.toggle("active");
+        }
+        function openHistorial() { toggleMenu(); document.getElementById("modalHistorial").style.display = "flex"; }
+        function closeHistorial() { document.getElementById("modalHistorial").style.display = "none"; }
+
+        let modoActual = 'individual';
+
+        function cambiarModo(modo) {
+            modoActual = modo;
+            if (modo === 'individual') {
+                document.getElementById("tabInd").classList.add("active");
+                document.getElementById("tabSala").classList.remove("active");
+                document.getElementById("seccion_individual").style.display = "block";
+                document.getElementById("seccion_sala").style.display = "none";
+            } else {
+                document.getElementById("tabSala").classList.add("active");
+                document.getElementById("tabInd").classList.remove("active");
+                document.getElementById("seccion_individual").style.display = "none";
+                document.getElementById("seccion_sala").style.display = "block";
+                cargarEstadoMesa();
+            }
+        }
+
+        async function jugarIndividual() {
+            const apuesta = parseFloat(document.getElementById("apuesta").value);
+            const numero = parseInt(document.getElementById("numero").value);
+            const color = document.querySelector('input[name="color"]:checked').value;
+            const sonido = document.getElementById("efecto_sonido").checked;
+            const luces = document.getElementById("efecto_luces").checked;
+
+            if (!apuesta || apuesta <= 0) return alert("Ingrese un monto válido");
+
+            document.getElementById("resultado").innerHTML = " <i>GIRANDO RULETA FÍSICA...</i>";
+
+            const res = await fetch('/apostar_individual', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ monto: apuesta, numero: numero, color: color, sonido: sonido, luces: luces })
+            });
+
+            const data = await res.json();
+            if (data.status === 'ok') {
+                document.getElementById("saldo").innerText = data.nuevo_saldo;
+                const resultClass = data.resultado === 'GANASTE' ? 'win' : 'loss';
+                document.getElementById("resultado").innerHTML = 
+                    `Salió: <b>${data.numero_ganador} (${data.color_ganador})</b> | <span class="${resultClass}">¡${data.resultado}!</span>`;
+            } else {
+                alert(data.message);
+                document.getElementById("resultado").innerText = "Error en la apuesta.";
+            }
+        }
+
+        function renderMesa(apuestas) {
+            const contenedor = document.getElementById("lista_apuestas");
+            if (!apuestas || apuestas.length === 0) {
+                contenedor.innerHTML = '<i style="color: #a1a1aa; font-size: 13px;">No hay apuestas en la mesa aún.</i>';
+                return;
+            }
+            contenedor.innerHTML = apuestas.map(a => `
+                <div class="mesa-item">
+                    <span>👤 <b>${a.username}</b></span>
+                    <span>S/ ${a.monto} a <b>${a.color} (${a.numero})</b></span>
+                </div>
+            `).join('');
+        }
+
+        async function cargarEstadoMesa() {
+            if (modoActual !== 'sala') return;
+            const res = await fetch('/obtener_ronda');
+            const data = await res.json();
+            renderMesa(data.apuestas_ronda);
+        }
+        
+        setInterval(cargarEstadoMesa, 2000);
+
+        async function registrarEnMesa() {
+            const apuesta = parseFloat(document.getElementById("apuesta").value);
+            const numero = parseInt(document.getElementById("numero").value);
+            const color = document.querySelector('input[name="color"]:checked').value;
+
+            if (!apuesta || apuesta <= 0) return alert("Ingrese un monto válido");
+
+            const res = await fetch('/registrar_apuesta_sala', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ monto: apuesta, numero: numero, color: color })
+            });
+
+            const data = await res.json();
+            if (data.status === 'ok') {
+                renderMesa(data.apuestas_ronda);
+                document.getElementById("resultado").innerText = "¡Apuesta registrada en la mesa!";
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function girarParaTodos() {
+            document.getElementById("resultado").innerHTML = "🎰 <i>GIRANDO RULETA FÍSICA PARA TODOS...</i>";
+
+            const res = await fetch('/girar_sala', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'ok') {
+                document.getElementById("resultado").innerHTML = 
+                    `Salió el número: <b>${data.numero_ganador} (${data.color_ganador})</b> 🎉 ¡Cargando saldos!`;
+                
+                setTimeout(() => { location.reload(); }, 2500);
+            } else {
+                alert(data.message);
+                document.getElementById("resultado").innerText = "Error o no hay apuestas en mesa.";
+            }
+        }
+    </script>
+</body>
+</html>
