@@ -24,7 +24,7 @@ SALA_ESTADO = {
 def get_db_connection():
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
-        database_url = "postgresql://postgres:apuestafijas2A@db.voyfoiqionnheakpoint.supabase.co:5432/postgres"
+        database_url = "postgresql://postgres:apuestafijas2A@db.voyfoiqionnheakpoint.supabase.co:6543/postgres"
         
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
     return conn
@@ -228,7 +228,6 @@ def admin_panel():
     
     return render_template('admin.html', usuarios=usuarios, historial=historial)
 
-# NUEVO: Control del Administrador para abrir la Sala en Vivo con temporizador
 @app.route('/admin/abrir_sala', methods=['POST'])
 def abrir_sala_admin():
     admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
@@ -238,22 +237,18 @@ def abrir_sala_admin():
     if SALA_ESTADO["activa"]:
         return jsonify({'status': 'error', 'message': 'Ya hay una sala activa'}), 400
 
-    # Inicializar una nueva ronda de sala con 20 segundos para apostar
     SALA_ESTADO["activa"] = True
     SALA_ESTADO["tiempo_restante"] = 20
     SALA_ESTADO["apuestas"] = []
     SALA_ESTADO["ultimo_resultado"] = None
 
-    # Hilo secundario para manejar el conteo regresivo y el cierre automático con el ESP32
     def temporizador_sala():
         while SALA_ESTADO["tiempo_restante"] > 0:
             time.sleep(1)
             SALA_ESTADO["tiempo_restante"] -= 1
 
-        # Al acabarse el tiempo, se procesa la ronda automáticamente
         SALA_ESTADO["activa"] = False
         
-        # Calcular ganador con base en las apuestas recolectadas
         numero_ganador = calcular_ganador_casa(SALA_ESTADO["apuestas"])
         color_ganador = obtener_color(numero_ganador)
         
@@ -278,14 +273,12 @@ def abrir_sala_admin():
         cursor.close()
         conn.close()
 
-        # Guardar el último resultado para que los clientes lo lean
         SALA_ESTADO["ultimo_resultado"] = {
             "numero_ganador": numero_ganador,
             "color_ganador": color_ganador,
             "apuestas_ronda": SALA_ESTADO["apuestas"]
         }
 
-        # Enviar orden física única al ESP32
         time.sleep(1)
         enviar_a_esp32_async(numero_ganador, 1, 1)
 
@@ -324,7 +317,6 @@ def apostar_sala():
     if not user or monto > user['saldo']:
         return jsonify({'status': 'error', 'message': 'Saldo insuficiente o usuario inválido'}), 400
     
-    # Verificar que el usuario no haya apostado ya en esta misma ronda
     for ap in SALA_ESTADO["apuestas"]:
         if ap['user_id'] == session['user_id']:
             return jsonify({'status': 'error', 'message': 'Ya registraste tu apuesta para esta ronda'}), 400

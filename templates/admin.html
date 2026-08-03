@@ -43,6 +43,28 @@
             <a href="/" class="back-btn">⬅ Volver al Juego</a>
         </div>
 
+        <!-- Control de Sala y Rondas -->
+        <div class="card">
+            <h2>🎲 CONTROL DE SALA EN VIVO</h2>
+            <form action="/admin/control-sala" method="POST" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-size: 13px; color: #a1a1aa; display: block; margin-bottom: 5px;">Número Ganador:</label>
+                    <input type="number" name="numero_ganador" placeholder="Ej: 5" required style="width: 100%;">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="font-size: 13px; color: #a1a1aa; display: block; margin-bottom: 5px;">Color Ganador:</label>
+                    <select name="color_ganador" style="width: 100%; padding: 8px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 6px; color: white; font-size: 13px;">
+                        <option value="Rojo">Rojo</option>
+                        <option value="Negro">Negro</option>
+                        <option value="Verde">Verde</option>
+                    </select>
+                </div>
+                <div style="align-self: flex-end;">
+                    <button type="submit" class="btn-update" style="padding: 10px 20px;">🚀 Sortear y Cerrar Ronda</button>
+                </div>
+            </form>
+        </div>
+
         <!-- Gestión de Usuarios y Saldos -->
         <div class="card">
             <h2>👥 GESTIÓN DE USUARIOS Y SALDOS</h2>
