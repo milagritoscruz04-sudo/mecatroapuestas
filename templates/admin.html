@@ -31,6 +31,8 @@
         input[type="number"] { width: 100px; padding: 8px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 6px; color: white; font-size: 13px; }
         .btn-update { background: #22c55e; color: black; border: none; padding: 8px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
         .btn-update:hover { background: #16a34a; color: white; }
+        .btn-sala { background: #3b82f6; color: white; border: none; padding: 14px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; }
+        .btn-sala:hover { background: #2563eb; }
 
         .win { color: #22c55e; font-weight: bold; }
         .loss { color: #ef4444; font-weight: bold; }
@@ -43,26 +45,12 @@
             <a href="/" class="back-btn">⬅ Volver al Juego</a>
         </div>
 
-        <!-- Control de Sala y Rondas -->
+        <!-- Control de Sala en Vivo (Automático) -->
         <div class="card">
             <h2>🎲 CONTROL DE SALA EN VIVO</h2>
-            <form action="/admin/control-sala" method="POST" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px;">
-                    <label style="font-size: 13px; color: #a1a1aa; display: block; margin-bottom: 5px;">Número Ganador:</label>
-                    <input type="number" name="numero_ganador" placeholder="Ej: 5" required style="width: 100%;">
-                </div>
-                <div style="flex: 1; min-width: 200px;">
-                    <label style="font-size: 13px; color: #a1a1aa; display: block; margin-bottom: 5px;">Color Ganador:</label>
-                    <select name="color_ganador" style="width: 100%; padding: 8px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 6px; color: white; font-size: 13px;">
-                        <option value="Rojo">Rojo</option>
-                        <option value="Negro">Negro</option>
-                        <option value="Verde">Verde</option>
-                    </select>
-                </div>
-                <div style="align-self: flex-end;">
-                    <button type="submit" class="btn-update" style="padding: 10px 20px;">🚀 Sortear y Cerrar Ronda</button>
-                </div>
-            </form>
+            <p style="color: #a1a1aa; font-size: 13px; margin-bottom: 15px;">Al hacer clic, la sala se abrirá por 20 segundos para las apuestas. Al terminar, el sistema elegirá el ganador automáticamente y activará el ESP32.</p>
+            <button onclick="abrirSala()" class="btn-sala">🚀 Abrir Nueva Sala / Iniciar Ronda</button>
+            <p id="mensaje-sala" style="margin-top: 12px; font-weight: bold; font-size: 14px; text-align: center;"></p>
         </div>
 
         <!-- Gestión de Usuarios y Saldos -->
@@ -123,5 +111,32 @@
             </table>
         </div>
     </div>
+
+    <script>
+        function abrirSala() {
+            const msg = document.getElementById('mensaje-sala');
+            msg.style.color = '#facc15';
+            msg.innerText = '⏳ Abriendo sala y activando temporizador de 20s...';
+
+            fetch('/admin/abrir_sala', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    msg.style.color = '#22c55e';
+                    msg.innerText = '✅ ¡Sala abierta! Los usuarios ya pueden apostar.';
+                } else {
+                    msg.style.color = '#ef4444';
+                    msg.innerText = '❌ Error: ' + data.message;
+                }
+            })
+            .catch(err => {
+                msg.style.color = '#ef4444';
+                msg.innerText = '❌ Error de conexión con el servidor.';
+            });
+        }
+    </script>
 </body>
 </html>
