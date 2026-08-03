@@ -13,9 +13,14 @@ app.secret_key = "mecatroapuestas_secret_key"
 # IP actualizada del ESP32
 ESP32_IP = "http://192.168.18.100"
 
-APUESTAS_RONDA = [] 
+# Estado global de la sala en vivo controlada por el administrador
+SALA_ESTADO = {
+    "activa": False,
+    "tiempo_restante": 0,
+    "apuestas": [],
+    "ultimo_resultado": None
+}
 
-# Función para conectar a Supabase (PostgreSQL)
 def get_db_connection():
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -50,7 +55,6 @@ def init_db():
         )
     ''')
     
-    # Crear admin por defecto si no existe
     cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
     if not cursor.fetchone():
         cursor.execute("INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)", ('M000', 'admin', 'admin123', 5000.0))
@@ -59,7 +63,6 @@ def init_db():
     cursor.close()
     conn.close()
 
-# Inicializa las tablas en Supabase al arrancar
 init_db()
 
 def generar_siguiente_id():
@@ -91,8 +94,7 @@ def obtener_color(numero):
     else:
         return 'Rojo'
 
-# Función para enviar orden al ESP32 en segundo plano
-def enviar_a_esp32_async(numero_ganador, sonido, luces):
+def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
     def tarea():
         try:
             requests.get(
@@ -104,7 +106,6 @@ def enviar_a_esp32_async(numero_ganador, sonido, luces):
     
     threading.Thread(target=tarea).start()
 
-# Algoritmo "La Casa Nunca Pierde"
 def calcular_ganador_casa(apuestas_activas):
     todos_los_numeros = list(range(0, 24))
     
@@ -143,11 +144,15 @@ def index():
         session.clear()
         return redirect(url_for('login_view'))
     
+    admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
+    es_admin = session.get('username') in admins_autorizados
+
     return render_template('index.html', 
                            usuario=user['username'], 
                            user_id=user['id'], 
                            saldo=user['saldo'], 
-                           historial=historial)
+                           historial=historial,
+                           es_admin=es_admin)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_view():
@@ -197,7 +202,7 @@ def logout():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
-    admins_autorizados = ['Capi admin', 'El diavlo']
+    admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
     usuario_actual = session.get('username')
     
     if not usuario_actual or usuario_actual not in admins_autorizados:
@@ -223,63 +228,86 @@ def admin_panel():
     
     return render_template('admin.html', usuarios=usuarios, historial=historial)
 
-@app.route('/apostar_individual', methods=['POST'])
-def apostar_individual():
-    if 'user_id' not in session:
-        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
+# NUEVO: Control del Administrador para abrir la Sala en Vivo con temporizador
+@app.route('/admin/abrir_sala', methods=['POST'])
+def abrir_sala_admin():
+    admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
+    if session.get('username') not in admins_autorizados:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
     
-    data = request.json
-    monto = float(data.get('monto', 0))
-    numero_elegido = int(data.get('numero', 0))
-    color_elegido = data.get('color')
-    sonido = 1 if data.get('sonido', True) else 0
-    luces = 1 if data.get('luces', True) else 0
+    if SALA_ESTADO["activa"]:
+        return jsonify({'status': 'error', 'message': 'Ya hay una sala activa'}), 400
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT * FROM usuarios WHERE id = %s', (session['user_id'],))
-    user = cursor.fetchone()
-    
-    if not user or monto > user['saldo']:
+    # Inicializar una nueva ronda de sala con 20 segundos para apostar
+    SALA_ESTADO["activa"] = True
+    SALA_ESTADO["tiempo_restante"] = 20
+    SALA_ESTADO["apuestas"] = []
+    SALA_ESTADO["ultimo_resultado"] = None
+
+    # Hilo secundario para manejar el conteo regresivo y el cierre automático con el ESP32
+    def temporizador_sala():
+        while SALA_ESTADO["tiempo_restante"] > 0:
+            time.sleep(1)
+            SALA_ESTADO["tiempo_restante"] -= 1
+
+        # Al acabarse el tiempo, se procesa la ronda automáticamente
+        SALA_ESTADO["activa"] = False
+        
+        # Calcular ganador con base en las apuestas recolectadas
+        numero_ganador = calcular_ganador_casa(SALA_ESTADO["apuestas"])
+        color_ganador = obtener_color(numero_ganador)
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        for ap in SALA_ESTADO["apuestas"]:
+            gano = (ap['numero'] == numero_ganador) and (ap['color'].lower() == color_ganador.lower())
+            cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
+            user = cursor.fetchone()
+            if user:
+                nuevo_saldo = user['saldo'] + ap['monto'] if gano else user['saldo'] - ap['monto']
+                resultado_str = "GANASTE" if gano else "PERDISTE"
+                
+                cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
+                cursor.execute('''
+                    INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str))
+
+        conn.commit()
         cursor.close()
         conn.close()
-        return jsonify({'status': 'error', 'message': 'Saldo insuficiente o usuario inválido'}), 400
 
-    apuesta_temp = [{'numero': numero_elegido, 'monto': monto}]
-    numero_ganador = calcular_ganador_casa(apuesta_temp)
-    color_ganador = obtener_color(numero_ganador)
-    
-    # CORREGIDO: Ahora exige que coincida tanto el número elegidos como el color para ganar
-    gano = (numero_elegido == numero_ganador) and (color_elegido.lower() == color_ganador.lower())
-    nuevo_saldo = user['saldo'] + monto if gano else user['saldo'] - monto
-    resultado_str = "GANASTE" if gano else "PERDISTE"
-    
-    cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, session['user_id']))
-    cursor.execute('''
-        INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    ''', (session['user_id'], session['username'], monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado_str))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
+        # Guardar el último resultado para que los clientes lo lean
+        SALA_ESTADO["ultimo_resultado"] = {
+            "numero_ganador": numero_ganador,
+            "color_ganador": color_ganador,
+            "apuestas_ronda": SALA_ESTADO["apuestas"]
+        }
 
-    time.sleep(3.5)
-    enviar_a_esp32_async(numero_ganador, sonido, luces)
+        # Enviar orden física única al ESP32
+        time.sleep(1)
+        enviar_a_esp32_async(numero_ganador, 1, 1)
 
+    threading.Thread(target=temporizador_sala).start()
+    return jsonify({'status': 'ok', 'message': 'Sala abierta con éxito'})
+
+@app.route('/estado_sala', methods=['GET'])
+def estado_sala():
     return jsonify({
-        'status': 'ok',
-        'nuevo_saldo': nuevo_saldo,
-        'numero_ganador': numero_ganador,
-        'color_ganador': color_ganador,
-        'resultado': resultado_str
+        "activa": SALA_ESTADO["activa"],
+        "tiempo_restante": SALA_ESTADO["tiempo_restante"],
+        "apuestas": SALA_ESTADO["apuestas"],
+        "ultimo_resultado": SALA_ESTADO["ultimo_resultado"]
     })
 
-@app.route('/registrar_apuesta_sala', methods=['POST'])
-def registrar_apuesta_sala():
+@app.route('/apostar_sala', methods=['POST'])
+def apostar_sala():
     if 'user_id' not in session:
         return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
+    
+    if not SALA_ESTADO["activa"]:
+        return jsonify({'status': 'error', 'message': 'No hay ninguna sala abierta en este momento'}), 400
     
     data = request.json
     monto = float(data.get('monto', 0))
@@ -294,13 +322,14 @@ def registrar_apuesta_sala():
     conn.close()
     
     if not user or monto > user['saldo']:
-        return jsonify({'status': 'error', 'message': 'Saldo insuficiente'}), 400
+        return jsonify({'status': 'error', 'message': 'Saldo insuficiente o usuario inválido'}), 400
     
-    for ap in APUESTAS_RONDA:
+    # Verificar que el usuario no haya apostado ya en esta misma ronda
+    for ap in SALA_ESTADO["apuestas"]:
         if ap['user_id'] == session['user_id']:
             return jsonify({'status': 'error', 'message': 'Ya registraste tu apuesta para esta ronda'}), 400
 
-    APUESTAS_RONDA.append({
+    SALA_ESTADO["apuestas"].append({
         'user_id': session['user_id'],
         'username': session['username'],
         'monto': monto,
@@ -308,53 +337,7 @@ def registrar_apuesta_sala():
         'color': color
     })
     
-    return jsonify({'status': 'ok', 'apuestas_ronda': APUESTAS_RONDA})
-
-@app.route('/obtener_ronda', methods=['GET'])
-def obtener_ronda():
-    return jsonify({'apuestas_ronda': APUESTAS_RONDA})
-
-@app.route('/girar_sala', methods=['POST'])
-def girar_sala():
-    global APUESTAS_RONDA
-    
-    if not APUESTAS_RONDA:
-        return jsonify({'status': 'error', 'message': 'No hay apuestas en la sala'}), 400
-
-    numero_ganador = calcular_ganador_casa(APUESTAS_RONDA)
-    color_ganador = obtener_color(numero_ganador)
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    for ap in APUESTAS_RONDA:
-        gano = (ap['numero'] == numero_ganador) and (ap['color'].lower() == color_ganador.lower())
-        cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
-        user = cursor.fetchone()
-        if user:
-            nuevo_saldo = user['saldo'] + ap['monto'] if gano else user['saldo'] - ap['monto']
-            resultado_str = "GANASTE" if gano else "PERDISTE"
-            
-            cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
-            cursor.execute('''
-                INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    time.sleep(3.5)
-    enviar_a_esp32_async(numero_ganador, 1, 1)
-
-    APUESTAS_RONDA = []
-
-    return jsonify({
-        'status': 'ok',
-        'numero_ganador': numero_ganador,
-        'color_ganador': color_ganador
-    })
+    return jsonify({'status': 'ok', 'message': 'Apuesta registrada en la sala'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
