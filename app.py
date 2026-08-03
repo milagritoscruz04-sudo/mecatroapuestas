@@ -17,10 +17,8 @@ APUESTAS_RONDA = []
 
 # Función para conectar a Supabase (PostgreSQL)
 def get_db_connection():
-    # Obtiene la URL de conexión desde las variables de entorno de Render o tu entorno local
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
-
         database_url = "postgresql://postgres:apuestafijas2A@db.voyfoiqionnheakpoint.supabase.co:5432/postgres"
         
     conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
@@ -124,7 +122,6 @@ def calcular_ganador_casa(apuestas_activas):
     
     return random.randint(0, 23)
 
-
 @app.route('/')
 def index():
     if 'user_id' not in session:
@@ -186,7 +183,7 @@ def login_view():
         conn.close()
         
     if user:
-        session.clear()  # Limpia cualquier sesión residual anterior
+        session.clear()
         session['user_id'] = user['id']
         session['username'] = user['username']
         return jsonify({'status': 'ok', 'user_id': user['id']})
@@ -198,7 +195,6 @@ def logout():
     session.clear()
     return redirect(url_for('login_view'))
 
-# PANEL ADMIN EXCLUSIVO PARA Capi admin y El diavlo
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
     admins_autorizados = ['Capi admin', 'El diavlo']
@@ -227,7 +223,6 @@ def admin_panel():
     
     return render_template('admin.html', usuarios=usuarios, historial=historial)
 
-# MODO INDIVIDUAL CON SUSPENSO
 @app.route('/apostar_individual', methods=['POST'])
 def apostar_individual():
     if 'user_id' not in session:
@@ -255,7 +250,8 @@ def apostar_individual():
     numero_ganador = calcular_ganador_casa(apuesta_temp)
     color_ganador = obtener_color(numero_ganador)
     
-    gano = (numero_elegido == numero_ganador) or (color_elegido.lower() == color_ganador.lower())
+    # CORREGIDO: Ahora exige que coincida tanto el número elegidos como el color para ganar
+    gano = (numero_elegido == numero_ganador) and (color_elegido.lower() == color_ganador.lower())
     nuevo_saldo = user['saldo'] + monto if gano else user['saldo'] - monto
     resultado_str = "GANASTE" if gano else "PERDISTE"
     
@@ -280,7 +276,6 @@ def apostar_individual():
         'resultado': resultado_str
     })
 
-# MODO SALA MULTIJUGADOR
 @app.route('/registrar_apuesta_sala', methods=['POST'])
 def registrar_apuesta_sala():
     if 'user_id' not in session:
@@ -333,7 +328,7 @@ def girar_sala():
     cursor = conn.cursor()
     
     for ap in APUESTAS_RONDA:
-        gano = (ap['numero'] == numero_ganador) or (ap['color'].lower() == color_ganador.lower())
+        gano = (ap['numero'] == numero_ganador) and (ap['color'].lower() == color_ganador.lower())
         cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
         user = cursor.fetchone()
         if user:
