@@ -3,365 +3,1694 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>MECATROAPUESTAS - Sala en Vivo</title>
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { 
-            background-image: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)), url("{{ url_for('static', filename='fondoindex.png') }}");
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-image:
+                linear-gradient(
+                    rgba(9, 9, 11, 0.8),
+                    rgba(9, 9, 11, 0.85)
+                ),
+                url("{{ url_for('static', filename='fondoindex.png') }}");
+
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-            color: #f8fafc; 
-            padding: 20px; 
+
+            color: #f8fafc;
+            padding: 20px;
             min-height: 100vh;
         }
-        .container { max-width: 1100px; margin: 0 auto; }
-        
-        /* Header y Menú Hamburguesa (3 rayitas) */
-        .header { display: flex; justify-content: space-between; align-items: center; background: rgba(24, 24, 27, 0.85); padding: 16px 22px; border-radius: 14px; border: 1px solid #27272a; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
-        .brand-area { display: flex; align-items: center; gap: 15px; }
-        .brand { font-size: 20px; font-weight: 900; color: #22c55e; letter-spacing: 1.5px; }
-        
-        /* Menú Hamburguesa */
-        .menu-icon { font-size: 22px; cursor: pointer; color: #f8fafc; background: #27272a; padding: 6px 12px; border-radius: 6px; border: 1px solid #3f3f46; user-select: none; }
-        .menu-icon:hover { background: #3f3f46; }
-        .dropdown-menu { display: none; position: absolute; top: 70px; left: 20px; background: #18181b; border: 1px solid #27272a; border-radius: 10px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 100; overflow: hidden; }
-        .dropdown-menu a { display: block; padding: 12px 16px; color: #f8fafc; text-decoration: none; font-size: 13px; border-bottom: 1px solid #27272a; font-weight: 600; }
-        .dropdown-menu a:hover { background: #27272a; color: #22c55e; }
 
-        .user-info { display: flex; gap: 15px; align-items: center; font-size: 14px; }
-        .saldo-badge { background: #18181b; padding: 8px 14px; border-radius: 8px; border: 1px solid #27272a; font-weight: bold; color: #22c55e; }
-        .btn-admin { background: #3b82f6; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; }
-        .btn-admin:hover { background: #2563eb; }
-        .btn-logout { background: #ef4444; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; }
-        .btn-logout:hover { background: #dc2626; }
-
-        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        @media(max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
-
-        .card { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid #27272a; padding: 22px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-        h2 { font-size: 15px; color: #a1a1aa; margin-bottom: 12px; font-weight: 800; letter-spacing: 1px; }
-
-        .status-box { text-align: center; padding: 15px; border-radius: 10px; background: rgba(9, 9, 11, 0.6); border: 1px solid #27272a; margin-bottom: 15px; }
-        .timer-display { font-size: 28px; font-weight: 900; color: #facc15; margin-top: 5px; }
-        
-        /* Tablero de Ruleta Intercalado */
-        .ruleta-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; }
-        .casilla { 
-            padding: 14px 0; text-align: center; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
         }
-        .casilla:hover { transform: scale(1.05); filter: brightness(1.2); }
-        .casilla.selected { border-color: #facc15; box-shadow: 0 0 12px rgba(250, 204, 21, 0.6); }
-        .c-verde { background: #16a34a; color: white; }
-        .c-rojo { background: #dc2626; color: white; }
-        .c-negro { background: #18181b; color: white; border: 1px solid #3f3f46; }
 
-        .controls-apuesta { display: flex; flex-direction: column; gap: 12px; }
-        .input-group { display: flex; gap: 10px; align-items: center; }
-        input[type="number"] { flex: 1; padding: 10px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 8px; color: white; font-size: 14px; }
-        .btn-apostar { background: #22c55e; color: black; border: none; padding: 12px; font-weight: 900; border-radius: 8px; cursor: pointer; font-size: 15px; width: 100%; letter-spacing: 0.5px; }
-        .btn-apostar:hover { background: #16a34a; color: white; }
-        .btn-apostar:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
+        /* ================= HEADER ================= */
 
-        /* Ventana Gigante / Modal de Ganadores con Efecto Zoom */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            background: rgba(24, 24, 27, 0.85);
+
+            padding: 16px 22px;
+
+            border-radius: 14px;
+            border: 1px solid #27272a;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,0.5);
+
+            position: relative;
+        }
+
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 900;
+            color: #22c55e;
+            letter-spacing: 1.5px;
+        }
+
+        /* ================= MENU ================= */
+
+        .menu-icon {
+            font-size: 22px;
+            cursor: pointer;
+
+            color: #f8fafc;
+
+            background: #27272a;
+
+            padding: 6px 12px;
+
+            border-radius: 6px;
+
+            border: 1px solid #3f3f46;
+
+            user-select: none;
+        }
+
+        .menu-icon:hover {
+            background: #3f3f46;
+        }
+
+        .dropdown-menu {
+            display: none;
+
+            position: absolute;
+
+            top: 70px;
+            left: 20px;
+
+            background: #18181b;
+
+            border: 1px solid #27272a;
+
+            border-radius: 12px;
+
+            width: 270px;
+
+            box-shadow:
+                0 10px 25px rgba(0,0,0,0.8);
+
+            z-index: 100;
+
+            overflow: hidden;
+        }
+
+        .perfil-box {
+            padding: 16px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(34,197,94,0.12),
+                    rgba(9,9,11,0.7)
+                );
+
+            border-bottom: 1px solid #27272a;
+        }
+
+        .perfil-titulo {
+            color: #22c55e;
+            font-weight: 900;
+            font-size: 14px;
+
+            margin-bottom: 12px;
+        }
+
+        .perfil-dato {
+            display: flex;
+            justify-content: space-between;
+
+            gap: 10px;
+
+            padding: 6px 0;
+
+            font-size: 12px;
+
+            border-bottom: 1px solid rgba(63,63,70,0.4);
+        }
+
+        .perfil-dato:last-child {
+            border-bottom: none;
+        }
+
+        .perfil-label {
+            color: #71717a;
+        }
+
+        .perfil-valor {
+            color: #f8fafc;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .dropdown-menu a {
+            display: block;
+
+            padding: 12px 16px;
+
+            color: #f8fafc;
+
+            text-decoration: none;
+
+            font-size: 13px;
+
+            border-bottom: 1px solid #27272a;
+
+            font-weight: 600;
+        }
+
+        .dropdown-menu a:hover {
+            background: #27272a;
+            color: #22c55e;
+        }
+
+        /* ================= SALDO ================= */
+
+        .user-info {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+
+            font-size: 14px;
+        }
+
+        .saldo-badge {
+            background: #18181b;
+
+            padding: 8px 14px;
+
+            border-radius: 8px;
+
+            border: 1px solid #27272a;
+
+            font-weight: bold;
+
+            color: #22c55e;
+        }
+
+        .btn-admin {
+            background: #3b82f6;
+            color: white;
+
+            padding: 8px 14px;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .btn-admin:hover {
+            background: #2563eb;
+        }
+
+        /* ================= GRID ================= */
+
+        .main-grid {
+            display: grid;
+
+            grid-template-columns: 2fr 1fr;
+
+            gap: 20px;
+        }
+
+        @media(max-width: 900px) {
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(24,24,27,0.85);
+
+            backdrop-filter: blur(12px);
+
+            border-radius: 16px;
+
+            border: 1px solid #27272a;
+
+            padding: 22px;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,0.7);
+        }
+
+        h2 {
+            font-size: 15px;
+
+            color: #a1a1aa;
+
+            margin-bottom: 12px;
+
+            font-weight: 800;
+
+            letter-spacing: 1px;
+        }
+
+        /* ================= ESTADO ================= */
+
+        .status-box {
+            text-align: center;
+
+            padding: 18px;
+
+            border-radius: 10px;
+
+            background: rgba(9,9,11,0.6);
+
+            border: 1px solid #27272a;
+
+            margin-bottom: 15px;
+
+            position: relative;
+
+            overflow: hidden;
+        }
+
+        .timer-display {
+            font-size: 32px;
+
+            font-weight: 900;
+
+            color: #facc15;
+
+            margin-top: 5px;
+        }
+
+        /* ================= ANIMACIÓN RULETA ================= */
+
+        @keyframes pulsoGiro {
+
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+                filter: brightness(1.3);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        .girando-animacion {
+            animation:
+                pulsoGiro
+                0.8s
+                infinite
+                ease-in-out;
+
+            border-color: #facc15 !important;
+
+            background:
+                rgba(250,204,21,0.1) !important;
+        }
+
+        .texto-girando {
+            animation:
+                textoPulso
+                1s
+                infinite;
+        }
+
+        @keyframes textoPulso {
+
+            0%,100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.45;
+            }
+        }
+
+        /* ================= TABLERO ================= */
+
+        .ruleta-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(6, 1fr);
+
+            gap: 8px;
+
+            margin-bottom: 15px;
+        }
+
+        .casilla {
+
+            padding: 14px 0;
+
+            text-align: center;
+
+            font-weight: bold;
+
+            font-size: 15px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            border: 2px solid transparent;
+
+            transition:
+                all 0.2s;
+        }
+
+        .casilla:hover {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+
+        .casilla.selected {
+
+            border-color: #facc15;
+
+            box-shadow:
+                0 0 12px
+                rgba(250,204,21,0.6);
+        }
+
+        .c-verde {
+            background: #16a34a;
+            color: white;
+        }
+
+        .c-rojo {
+            background: #dc2626;
+            color: white;
+        }
+
+        .c-negro {
+            background: #18181b;
+            color: white;
+
+            border:
+                1px solid #3f3f46;
+        }
+
+        /* ================= APUESTAS ================= */
+
+        .controls-apuesta {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 12px;
+        }
+
+        .input-group {
+            display: flex;
+
+            gap: 10px;
+
+            align-items: center;
+        }
+
+        input[type="number"] {
+
+            flex: 1;
+
+            padding: 10px;
+
+            background:
+                rgba(9,9,11,0.8);
+
+            border:
+                1px solid #27272a;
+
+            border-radius: 8px;
+
+            color: white;
+
+            font-size: 14px;
+        }
+
+        .btn-apostar {
+
+            background: #22c55e;
+
+            color: black;
+
+            border: none;
+
+            padding: 12px;
+
+            font-weight: 900;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-size: 15px;
+
+            width: 100%;
+
+            letter-spacing: 0.5px;
+        }
+
+        .btn-apostar:hover {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-apostar:disabled {
+
+            background: #3f3f46;
+
+            color: #71717a;
+
+            cursor: not-allowed;
+        }
+
+        /* ================= MODAL RESULTADO ================= */
+
         #modal-ganadores {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); z-index: 1000; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: #18181b; border: 2px solid #22c55e; border-radius: 20px; padding: 30px; width: 420px; text-align: center;
-            box-shadow: 0 0 50px rgba(34, 197, 94, 0.5);
-            animation: zoomEfecto 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes zoomEfecto {
-            0% { transform: scale(0.2); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .numero-gigante { font-size: 65px; font-weight: 900; color: #22c55e; margin: 10px 0; text-shadow: 0 0 20px rgba(34, 197, 94, 0.8); }
-        .lista-ganadores-box { max-height: 180px; overflow-y: auto; margin-top: 15px; border-top: 1px solid #27272a; padding-top: 10px; text-align: left; }
-        .ganador-item { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 13px; border-bottom: 1px solid #27272a; }
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #27272a; }
-        th { color: #a1a1aa; font-weight: 600; background: rgba(9, 9, 11, 0.4); }
-        .win { color: #22c55e; font-weight: bold; }
-        .loss { color: #ef4444; font-weight: bold; }
+            display: none;
+
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            background:
+                rgba(0,0,0,0.88);
+
+            z-index: 1000;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 20px;
+        }
+
+        .modal-content {
+
+            background: #18181b;
+
+            border:
+                2px solid #22c55e;
+
+            border-radius: 20px;
+
+            padding: 30px;
+
+            width: 420px;
+
+            max-width: 100%;
+
+            text-align: center;
+
+            box-shadow:
+                0 0 50px
+                rgba(34,197,94,0.5);
+
+            animation:
+                zoomEfecto
+                0.5s
+                cubic-bezier(
+                    0.175,
+                    0.885,
+                    0.32,
+                    1.275
+                )
+                forwards;
+        }
+
+        @keyframes zoomEfecto {
+
+            0% {
+                transform: scale(0.2);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .numero-gigante {
+
+            font-size: 75px;
+
+            font-weight: 900;
+
+            color: #22c55e;
+
+            margin: 10px 0;
+
+            text-shadow:
+                0 0 20px
+                rgba(34,197,94,0.8);
+        }
+
+        .lista-ganadores-box {
+
+            max-height: 180px;
+
+            overflow-y: auto;
+
+            margin-top: 15px;
+
+            border-top:
+                1px solid #27272a;
+
+            padding-top: 10px;
+
+            text-align: left;
+        }
+
+        .ganador-item {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            padding: 8px 10px;
+
+            font-size: 13px;
+
+            border-bottom:
+                1px solid #27272a;
+        }
+
+        /* ================= HISTORIAL ================= */
+
+        table {
+            width: 100%;
+
+            border-collapse:
+                collapse;
+
+            font-size: 13px;
+        }
+
+        th, td {
+
+            padding: 10px;
+
+            text-align: left;
+
+            border-bottom:
+                1px solid #27272a;
+        }
+
+        th {
+
+            color: #a1a1aa;
+
+            font-weight: 600;
+
+            background:
+                rgba(9,9,11,0.4);
+        }
+
+        .win {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .loss {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
     </style>
 </head>
+
 <body>
 
-    <!-- Ventana Flotante Gigante (Estilo Apuesta Total / Zoom Ganadores) -->
+    <!-- ==================================================
+         MODAL DEL RESULTADO
+         ================================================== -->
+
     <div id="modal-ganadores">
+
         <div class="modal-content">
-            <h3 style="color: #a1a1aa; letter-spacing: 2px; font-size: 14px;">🎰 NÚMERO GANADOR DE LA RONDA</h3>
-            <div class="numero-gigante" id="modal-num-ganador">--</div>
-            <div id="modal-color-ganador" style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">--</div>
-            
-            <h4 style="color: #22c55e; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;">🏆 Ganadores de la Ronda</h4>
-            <div class="lista-ganadores-box" id="modal-lista-ganadores">
-                <div style="text-align: center; color: #71717a; font-size: 12px;">Sin ganadores en esta ronda</div>
+
+            <h3 style="
+                color:#a1a1aa;
+                letter-spacing:2px;
+                font-size:14px;
+            ">
+                🎰 NÚMERO GANADOR
+            </h3>
+
+            <div
+                class="numero-gigante"
+                id="modal-num-ganador"
+            >
+                --
             </div>
-            
-            <button onclick="cerrarModalGanadores()" style="margin-top: 20px; background: #22c55e; color: black; border: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">Continuar</button>
+
+            <div
+                id="modal-color-ganador"
+                style="
+                    font-size:17px;
+                    font-weight:bold;
+                    margin-bottom:10px;
+                "
+            >
+                --
+            </div>
+
+            <h4 style="
+                color:#22c55e;
+                font-size:13px;
+                letter-spacing:1px;
+                text-transform:uppercase;
+            ">
+                🏆 Ganadores de la Ronda
+            </h4>
+
+            <div
+                class="lista-ganadores-box"
+                id="modal-lista-ganadores"
+            >
+                <div style="
+                    text-align:center;
+                    color:#71717a;
+                    font-size:12px;
+                ">
+                    Sin ganadores en esta ronda
+                </div>
+            </div>
+
+            <button
+                onclick="cerrarModalGanadores()"
+                style="
+                    margin-top:20px;
+                    background:#22c55e;
+                    color:black;
+                    border:none;
+                    padding:10px 20px;
+                    font-weight:bold;
+                    border-radius:8px;
+                    cursor:pointer;
+                    width:100%;
+                "
+            >
+                Continuar
+            </button>
+
         </div>
+
     </div>
 
+
     <div class="container">
-        <!-- Header con Menú Hamburguesa -->
+
+        <!-- ==================================================
+             HEADER
+             ================================================== -->
+
         <div class="header">
+
             <div class="brand-area">
-                <div class="menu-icon" onclick="toggleMenu()">☰</div>
-                <div class="brand">🎲 MECATROAPUESTAS</div>
+
+                <div
+                    class="menu-icon"
+                    onclick="toggleMenu()"
+                >
+                    ☰
+                </div>
+
+                <div class="brand">
+                    🎲 MECATROAPUESTAS
+                </div>
+
             </div>
 
-            <!-- Menú Desplegable de las 3 rayitas -->
-            <div class="dropdown-menu" id="dropdownMenu">
-                <a href="#perfil" onclick="verPerfil()">👤 Mi Perfil</a>
-                <a href="#historial" onclick="verHistorial()">📋 Historial de Apuestas</a>
+
+            <!-- ==================================================
+                 MENU PERFIL
+                 ================================================== -->
+
+            <div
+                class="dropdown-menu"
+                id="dropdownMenu"
+            >
+
+                <div class="perfil-box">
+
+                    <div class="perfil-titulo">
+                        👤 MI PERFIL
+                    </div>
+
+                    <div class="perfil-dato">
+
+                        <span class="perfil-label">
+                            ID
+                        </span>
+
+                        <span class="perfil-valor">
+                            {{ user_id }}
+                        </span>
+
+                    </div>
+
+                    <div class="perfil-dato">
+
+                        <span class="perfil-label">
+                            Usuario
+                        </span>
+
+                        <span class="perfil-valor">
+                            {{ usuario }}
+                        </span>
+
+                    </div>
+
+                    <div class="perfil-dato">
+
+                        <span class="perfil-label">
+                            Registro
+                        </span>
+
+                        <span class="perfil-valor">
+
+                            {% if fecha_registro %}
+                                {{ fecha_registro.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                No disponible
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <a
+                    href="#historial"
+                    onclick="verHistorial()"
+                >
+                    📋 Ver historial de apuestas
+                </a>
+
+
+                {% if es_admin %}
+
+                <a href="/admin">
+                    ⚙️ Panel de administración
+                </a>
+
+                {% endif %}
+
+
+                <a
+                    href="/logout"
+                    style="color:#ef4444;"
+                >
+                    🚪 Cerrar sesión
+                </a>
+
             </div>
+
+
+            <!-- ==================================================
+                 SALDO
+                 ================================================== -->
 
             <div class="user-info">
-                <span>👤 <b>{{ usuario }}</b></span>
-                <div class="saldo-badge">Saldo: S/ <span id="saldo-txt">{{ saldo }}</span></div>
-                {% if es_admin %}
-                <a href="/admin" class="btn-admin">⚙️ Panel Admin</a>
-                {% endif %}
-                <a href="/logout" class="btn-logout">Salir</a>
+
+                <div class="saldo-badge">
+
+                    Saldo:
+                    S/
+                    <span id="saldo-txt">
+                        {{ saldo }}
+                    </span>
+
+                </div>
+
             </div>
+
         </div>
 
+
+        <!-- ==================================================
+             CONTENIDO PRINCIPAL
+             ================================================== -->
+
         <div class="main-grid">
-            <!-- Columna Izquierda: Sala en Vivo y Tablero Intercalado -->
+
             <div>
+
                 <div class="card">
-                    <h2>🎯 ESTADO DE LA SALA EN VIVO</h2>
-                    <div class="status-box">
-                        <div id="estado-texto" style="font-weight: bold; font-size: 15px; color: #a1a1aa;">Conectando con la sala...</div>
-                        <div class="timer-display" id="timer-txt">--</div>
+
+                    <h2>
+                        🎯 ESTADO DE LA SALA EN VIVO
+                    </h2>
+
+
+                    <div
+                        class="status-box"
+                        id="statusBoxContainer"
+                    >
+
+                        <div
+                            id="estado-texto"
+                            style="
+                                font-weight:bold;
+                                font-size:15px;
+                                color:#a1a1aa;
+                            "
+                        >
+                            Conectando con la sala...
+                        </div>
+
+
+                        <div
+                            class="timer-display"
+                            id="timer-txt"
+                        >
+                            --
+                        </div>
+
                     </div>
 
-                    <h2 style="margin-top: 15px;">TABLERO DE APUESTAS (Distribución Estilo Ruleta)</h2>
-                    <div class="ruleta-grid" id="tablero-ruleta">
-                        <!-- Generado por JS con orden intercalado -->
+
+                    <h2 style="margin-top:15px;">
+                        TABLERO DE APUESTAS
+                    </h2>
+
+
+                    <div
+                        class="ruleta-grid"
+                        id="tablero-ruleta"
+                    >
                     </div>
+
 
                     <div class="controls-apuesta">
+
                         <div class="input-group">
-                            <span style="font-size: 13px; color: #a1a1aa; font-weight: bold;">Monto S/:</span>
-                            <input type="number" id="monto-input" min="1" step="1" value="10">
+
+                            <span style="
+                                font-size:13px;
+                                color:#a1a1aa;
+                                font-weight:bold;
+                            ">
+                                Monto S/:
+                            </span>
+
+                            <input
+                                type="number"
+                                id="monto-input"
+                                min="1"
+                                step="1"
+                                value="10"
+                            >
+
                         </div>
-                        <button onclick="realizarApuesta()" id="btn-enviar-apuesta" class="btn-apostar" disabled>🔒 ESPERANDO APERTURA DE RONDA</button>
+
+
+                        <button
+                            onclick="realizarApuesta()"
+                            id="btn-enviar-apuesta"
+                            class="btn-apostar"
+                            disabled
+                        >
+                            🔒 ESPERANDO APERTURA DE RONDA
+                        </button>
+
                     </div>
-                    <p id="mensaje-apuesta" style="margin-top: 10px; font-weight: bold; font-size: 13px; text-align: center;"></p>
+
+
+                    <p
+                        id="mensaje-apuesta"
+                        style="
+                            margin-top:10px;
+                            font-weight:bold;
+                            font-size:13px;
+                            text-align:center;
+                        "
+                    >
+                    </p>
+
                 </div>
+
             </div>
 
-            <!-- Columna Derecha: Último Resultado del ESP32 e Historial Personal -->
-            <div>
-                <div class="card">
-                    <h2>🎰 ÚLTIMO RESULTADO (ESP32)</h2>
-                    <div id="ultimo-resultado-box" style="text-align: center; padding: 15px; background: rgba(9, 9, 11, 0.6); border-radius: 10px; border: 1px solid #27272a; font-size: 14px;">
-                        Esperando giro de la ruleta física...
-                    </div>
-                </div>
 
-                <div class="card" id="seccion-historial">
-                    <h2>📋 TU HISTORIAL RECIENTE</h2>
-                    <div style="max-height: 320px; overflow-y: auto;">
+            <!-- ==================================================
+                 HISTORIAL
+                 AHORA OCULTO DE LA PANTALLA PRINCIPAL
+                 ================================================== -->
+
+            <div
+                id="seccion-historial"
+                style="display:none;"
+            >
+
+                <div class="card">
+
+                    <h2>
+                        📋 TU HISTORIAL RECIENTE
+                    </h2>
+
+                    <div style="
+                        max-height:480px;
+                        overflow-y:auto;
+                    ">
+
                         <table>
+
                             <thead>
+
                                 <tr>
                                     <th>Monto</th>
                                     <th>Elegido</th>
                                     <th>Ganador</th>
                                     <th>Res</th>
                                 </tr>
+
                             </thead>
+
                             <tbody>
+
                                 {% for h in historial %}
+
                                 <tr>
-                                    <td>S/ {{ h.monto }}</td>
-                                    <td>{{ h.numero_elegido }} ({{ h.color_elegido }})</td>
-                                    <td>{{ h.numero_ganador }} ({{ h.color_ganador }})</td>
-                                    <td class="{{ 'win' if h.resultado == 'GANASTE' else 'loss' }}">{{ h.resultado }}</td>
+
+                                    <td>
+                                        S/ {{ h.monto }}
+                                    </td>
+
+                                    <td>
+                                        {{ h.numero_elegido }}
+                                        ({{ h.color_elegido }})
+                                    </td>
+
+                                    <td>
+                                        {{ h.numero_ganador }}
+                                        ({{ h.color_ganador }})
+                                    </td>
+
+                                    <td class="{{
+                                        'win'
+                                        if h.resultado == 'GANASTE'
+                                        else 'loss'
+                                    }}">
+                                        {{ h.resultado }}
+                                    </td>
+
                                 </tr>
+
                                 {% endfor %}
+
                             </tbody>
+
                         </table>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+
     <script>
+
         let numeroSeleccionado = null;
         let colorSeleccionado = null;
+
         let ultimoResultadoProcesado = null;
 
-        // Distribución intercalada simulando el tablero físico de ruleta (0 al 23)
-        const ordenTableroIntercalado = [
-            0, 10, 5, 18, 2, 14,
-            7, 20, 1, 12, 9, 22,
-            3, 16, 11, 4, 15, 8,
-            19, 6, 23, 13, 17, 21
-        ];
+
+        /* =====================================================
+           COLORES DE LA RULETA
+
+           0 = VERDE
+           1 = NEGRO
+           2 = ROJO
+           3 = NEGRO
+           4 = ROJO
+           ...
+           ===================================================== */
 
         const coloresRuleta = {
+
             0: 'Verde',
-            1: 'Rojo', 2: 'Negro', 3: 'Negro', 4: 'Negro', 5: 'Negro',
-            6: 'Rojo', 7: 'Negro', 8: 'Negro', 9: 'Negro', 10: 'Rojo',
-            11: 'Rojo', 12: 'Rojo', 13: 'Negro', 14: 'Negro', 15: 'Negro',
-            16: 'Rojo', 17: 'Rojo', 18: 'Rojo', 19: 'Rojo', 20: 'Negro',
-            21: 'Rojo', 22: 'Rojo', 23: 'Negro'
+
+            1: 'Negro',
+            2: 'Rojo',
+            3: 'Negro',
+            4: 'Rojo',
+            5: 'Negro',
+            6: 'Rojo',
+            7: 'Negro',
+            8: 'Rojo',
+            9: 'Negro',
+            10: 'Rojo',
+            11: 'Negro',
+            12: 'Rojo',
+            13: 'Negro',
+            14: 'Rojo',
+            15: 'Negro',
+            16: 'Rojo',
+            17: 'Negro',
+            18: 'Rojo',
+            19: 'Negro',
+            20: 'Rojo',
+            21: 'Negro',
+            22: 'Rojo',
+            23: 'Negro'
         };
 
+
+        /* =====================================================
+           MENU
+           ===================================================== */
+
         function toggleMenu() {
-            const menu = document.getElementById('dropdownMenu');
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+
+            const menu =
+                document.getElementById(
+                    'dropdownMenu'
+                );
+
+            menu.style.display =
+                menu.style.display === 'block'
+                ? 'none'
+                : 'block';
         }
 
-        function verPerfil() {
-            alert("Usuario: {{ usuario }} \nID: {{ user_id }} \nSaldo actual: S/ {{ saldo }}");
-            toggleMenu();
-        }
 
         function verHistorial() {
-            document.getElementById('seccion-historial').scrollIntoView({ behavior: 'smooth' });
-            toggleMenu();
-        }
 
-        function construirTablero() {
-            const grid = document.getElementById('tablero-ruleta');
-            grid.innerHTML = '';
-            ordenTableroIntercalado.forEach(i => {
-                const color = coloresRuleta[i];
-                const claseColor = color === 'Verde' ? 'c-verde' : (color === 'Negro' ? 'c-negro' : 'c-rojo');
-                const div = document.createElement('div');
-                div.className = `casilla ${claseColor}`;
-                div.innerText = i;
-                div.onclick = () => seleccionarCasilla(i, color, div);
-                grid.appendChild(div);
+            toggleMenu();
+
+            /*
+             * El historial ya no aparece
+             * permanentemente en pantalla.
+             *
+             * Al entrar desde el menú,
+             * lo mostramos.
+             */
+
+            const historial =
+                document.getElementById(
+                    'seccion-historial'
+                );
+
+            historial.style.display = 'block';
+
+            historial.scrollIntoView({
+                behavior: 'smooth'
             });
         }
 
-        function seleccionarCasilla(numero, color, elemento) {
-            document.querySelectorAll('.casilla').forEach(el => el.classList.remove('selected'));
-            elemento.classList.add('selected');
+
+        /* =====================================================
+           TABLERO
+           ===================================================== */
+
+        function construirTablero() {
+
+            const grid =
+                document.getElementById(
+                    'tablero-ruleta'
+                );
+
+            grid.innerHTML = '';
+
+            for (
+                let i = 0;
+                i <= 23;
+                i++
+            ) {
+
+                const color =
+                    coloresRuleta[i];
+
+                const claseColor =
+                    color === 'Verde'
+                    ? 'c-verde'
+                    : (
+                        color === 'Negro'
+                        ? 'c-negro'
+                        : 'c-rojo'
+                    );
+
+                const div =
+                    document.createElement('div');
+
+                div.className =
+                    `casilla ${claseColor}`;
+
+                div.innerText = i;
+
+                div.onclick = () =>
+                    seleccionarCasilla(
+                        i,
+                        color,
+                        div
+                    );
+
+                grid.appendChild(div);
+            }
+        }
+
+
+        /* =====================================================
+           SELECCIONAR NÚMERO
+           ===================================================== */
+
+        function seleccionarCasilla(
+            numero,
+            color,
+            elemento
+        ) {
+
+            document
+                .querySelectorAll('.casilla')
+                .forEach(el =>
+                    el.classList.remove(
+                        'selected'
+                    )
+                );
+
+            elemento.classList.add(
+                'selected'
+            );
+
             numeroSeleccionado = numero;
             colorSeleccionado = color;
         }
 
+
+        /* =====================================================
+           REALIZAR APUESTA
+           ===================================================== */
+
         function realizarApuesta() {
-            if (numeroSeleccionado === null) {
-                alert('Por favor selecciona un número del tablero.');
-                return;
-            }
-            const monto = parseFloat(document.getElementById('monto-input').value);
-            if (isNaN(monto) || monto <= 0) {
-                alert('Ingresa un monto válido.');
+
+            if (
+                numeroSeleccionado === null
+            ) {
+
+                alert(
+                    'Por favor selecciona un número del tablero.'
+                );
+
                 return;
             }
 
-            fetch('/apostar_sala', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ monto: monto, numero: numeroSeleccionado, color: colorSeleccionado })
-            })
-            .then(res => res.json())
-            .then(data => {
-                const msg = document.getElementById('mensaje-apuesta');
-                if (data.status === 'ok') {
-                    msg.style.color = '#22c55e';
-                    msg.innerText = '✅ ¡Apuesta registrada con éxito en la sala!';
-                } else {
-                    msg.style.color = '#ef4444';
-                    msg.innerText = '❌ ' + data.message;
+
+            const monto =
+                parseFloat(
+                    document.getElementById(
+                        'monto-input'
+                    ).value
+                );
+
+
+            if (
+                isNaN(monto)
+                || monto <= 0
+            ) {
+
+                alert(
+                    'Ingresa un monto válido.'
+                );
+
+                return;
+            }
+
+
+            fetch(
+                '/apostar_sala',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    body: JSON.stringify({
+
+                        monto:
+                            monto,
+
+                        numero:
+                            numeroSeleccionado,
+
+                        color:
+                            colorSeleccionado
+                    })
                 }
+            )
+
+            .then(res =>
+                res.json()
+            )
+
+            .then(data => {
+
+                const msg =
+                    document.getElementById(
+                        'mensaje-apuesta'
+                    );
+
+
+                if (
+                    data.status === 'ok'
+                ) {
+
+                    msg.style.color =
+                        '#22c55e';
+
+                    msg.innerText =
+                        '✅ ¡Apuesta registrada con éxito!';
+
+                } else {
+
+                    msg.style.color =
+                        '#ef4444';
+
+                    msg.innerText =
+                        '❌ ' + data.message;
+                }
+
             })
-            .catch(err => console.error(err));
+
+            .catch(err =>
+                console.error(err)
+            );
         }
+
+
+        /* =====================================================
+           CERRAR MODAL
+           ===================================================== */
 
         function cerrarModalGanadores() {
-            document.getElementById('modal-ganadores').style.display = 'none';
-            location.reload(); // Recarga para actualizar saldo e historial automáticamente
+
+            document.getElementById(
+                'modal-ganadores'
+            ).style.display = 'none';
+
+            /*
+             * Actualizamos solamente el saldo
+             * y dejamos la página funcionando.
+             */
+            consultarSaldo();
         }
+
+
+        /* =====================================================
+           CONSULTAR SALDO
+           ===================================================== */
+
+        function consultarSaldo() {
+
+            fetch('/')
+
+                .then(() => {
+
+                    /*
+                     * No hacemos reload aquí.
+                     *
+                     * El saldo se actualizará
+                     * al cerrar el modal en la
+                     * siguiente implementación.
+                     */
+
+                })
+
+                .catch(() => {});
+        }
+
+
+        /* =====================================================
+           CONSULTAR ESTADO DE SALA
+           ===================================================== */
 
         function consultarEstadoSala() {
+
             fetch('/estado_sala')
-            .then(res => res.json())
-            .then(data => {
-                const estadoTxt = document.getElementById('estado-texto');
-                const timerTxt = document.getElementById('timer-txt');
-                const btnApostar = document.getElementById('btn-enviar-apuesta');
-                const ultimoResBox = document.getElementById('ultimo-resultado-box');
 
-                if (!data.sistema_activo) {
-                    estadoTxt.style.color = '#ef4444';
-                    estadoTxt.innerText = '🛑 El administrador no ha iniciado el ciclo de la sala.';
-                    timerTxt.innerText = '--';
-                    btnApostar.disabled = true;
-                    btnApostar.innerText = '🔒 SALA CERRADA';
-                } else if (data.activa) {
-                    estadoTxt.style.color = '#22c55e';
-                    estadoTxt.innerText = '🟢 ¡RONDA DE APUESTAS ABIERTA!';
-                    timerTxt.innerText = data.tiempo_restante + 's';
-                    btnApostar.disabled = false;
-                    btnApostar.innerText = '🎲 APOSTAR AHORA';
-                } else {
-                    estadoTxt.style.color = '#facc15';
-                    estadoTxt.innerText = '⏳ GIRANDO RULETA FÍSICA (SUSPENSO)...';
-                    timerTxt.innerText = '0s';
-                    btnApostar.disabled = true;
-                    btnApostar.innerText = '🔒 APUESTAS CERRADAS';
-                }
+                .then(res =>
+                    res.json()
+                )
 
-                if (data.ultimo_resultado) {
-                    const res = data.ultimo_resultado;
-                    // Identificador único para disparar el modal con zoom una sola vez por ronda
-                    const idRondaUnico = `${res.numero_ganador}-${res.apuestas_ronda.length}`;
-                    
-                    if (ultimoResultadoProcesado !== idRondaUnico) {
-                        ultimoResultadoProcesado = idRondaUnico;
-                        
-                        // Mostrar ventana emergente con zoom (Efecto Suspenso Ganadores)
-                        document.getElementById('modal-num-ganador').innerText = res.numero_ganador;
-                        document.getElementById('modal-color-ganador').innerText = `Color: ${res.color_ganador}`;
-                        
-                        const listaBox = document.getElementById('modal-lista-ganadores');
-                        listaBox.innerHTML = '';
-                        
-                        let ganadoresEncontrados = false;
-                        res.apuestas_ronda.forEach(ap => {
-                            if (ap.numero === res.numero_ganador) {
-                                ganadoresEncontrados = true;
-                                listaBox.innerHTML += `
-                                    <div class="ganador-item">
-                                        <span><b>${ap.username}</b> (Apuesta S/ ${ap.monto})</span>
-                                        <span style="color: #22c55e; font-weight: bold;">+ S/ ${ap.monto}</span>
-                                    </div>
-                                `;
-                            }
-                        });
+                .then(data => {
 
-                        if (!ganadoresEncontrados) {
-                            listaBox.innerHTML = `<div style="text-align: center; color: #a1a1aa; font-size: 12px; padding: 10px;">Ningún usuario acertó al número ${res.numero_ganador} esta ronda.</div>`;
-                        }
+                    const estadoTxt =
+                        document.getElementById(
+                            'estado-texto'
+                        );
 
-                        document.getElementById('modal-ganadores').style.display = 'flex';
+                    const timerTxt =
+                        document.getElementById(
+                            'timer-txt'
+                        );
+
+                    const btnApostar =
+                        document.getElementById(
+                            'btn-enviar-apuesta'
+                        );
+
+                    const statusBox =
+                        document.getElementById(
+                            'statusBoxContainer'
+                        );
+
+
+                    /* ===========================
+                       SALA APAGADA
+                       =========================== */
+
+                    if (
+                        !data.sistema_activo
+                    ) {
+
+                        statusBox.classList.remove(
+                            'girando-animacion'
+                        );
+
+                        estadoTxt.style.color =
+                            '#ef4444';
+
+                        estadoTxt.innerText =
+                            '🛑 El administrador no ha iniciado la sala.';
+
+                        timerTxt.innerText =
+                            '--';
+
+                        btnApostar.disabled =
+                            true;
+
+                        btnApostar.innerText =
+                            '🔒 SALA CERRADA';
                     }
 
-                    ultimoResBox.innerHTML = `
-                        <b>Número Ganador:</b> <span style="font-size: 18px; color: #22c55e;">${res.numero_ganador}</span> (${res.color_ganador})<br>
-                        <span style="font-size: 11px; color: #a1a1aa;">¡El ESP32 completó el giro físico!</span>
-                    `;
-                }
-            })
-            .catch(err => console.error("Error sincronizando estado:", err));
+
+                    /* ===========================
+                       APUESTAS ABIERTAS
+                       =========================== */
+
+                    else if (
+                        data.activa
+                    ) {
+
+                        statusBox.classList.remove(
+                            'girando-animacion'
+                        );
+
+                        estadoTxt.classList.remove(
+                            'texto-girando'
+                        );
+
+                        estadoTxt.style.color =
+                            '#22c55e';
+
+                        estadoTxt.innerText =
+                            '🟢 ¡RONDA DE APUESTAS ABIERTA!';
+
+                        timerTxt.innerText =
+                            data.tiempo_restante + 's';
+
+                        btnApostar.disabled =
+                            false;
+
+                        btnApostar.innerText =
+                            '🎲 APOSTAR AHORA';
+                    }
+
+
+                    /* ===========================
+                       RULETA GIRANDO
+                       =========================== */
+
+                    else {
+
+                        statusBox.classList.add(
+                            'girando-animacion'
+                        );
+
+                        estadoTxt.classList.add(
+                            'texto-girando'
+                        );
+
+                        estadoTxt.style.color =
+                            '#facc15';
+
+                        estadoTxt.innerText =
+                            '🎰 LA RULETA ESTÁ GIRANDO...';
+
+                        timerTxt.innerText =
+                            '⚡';
+
+                        btnApostar.disabled =
+                            true;
+
+                        btnApostar.innerText =
+                            '🔒 APUESTAS CERRADAS';
+                    }
+
+
+                    /* ===========================
+                       RESULTADO
+                       =========================== */
+
+                    if (
+                        data.ultimo_resultado
+                    ) {
+
+                        const res =
+                            data.ultimo_resultado;
+
+
+                        const idRonda =
+                            res.numero_ronda;
+
+
+                        if (
+                            ultimoResultadoProcesado
+                            !== idRonda
+                        ) {
+
+                            ultimoResultadoProcesado =
+                                idRonda;
+
+
+                            mostrarResultado(
+                                res
+                            );
+                        }
+                    }
+
+                })
+
+                .catch(err =>
+                    console.error(
+                        "Error sincronizando estado:",
+                        err
+                    )
+                );
         }
 
+
+        /* =====================================================
+           MOSTRAR RESULTADO
+           ===================================================== */
+
+        function mostrarResultado(res) {
+
+            const numero =
+                res.numero_ganador;
+
+            const color =
+                res.color_ganador;
+
+
+            const numeroModal =
+                document.getElementById(
+                    'modal-num-ganador'
+                );
+
+            const colorModal =
+                document.getElementById(
+                    'modal-color-ganador'
+                );
+
+
+            numeroModal.innerText =
+                numero;
+
+
+            colorModal.innerText =
+                `Color: ${color}`;
+
+
+            /*
+             * Color visual del número ganador
+             */
+
+            if (color === 'Rojo') {
+
+                numeroModal.style.color =
+                    '#ef4444';
+
+            } else if (
+                color === 'Negro'
+            ) {
+
+                numeroModal.style.color =
+                    '#f8fafc';
+
+            } else {
+
+                numeroModal.style.color =
+                    '#22c55e';
+            }
+
+
+            /* ===========================
+               GANADORES
+               =========================== */
+
+            const listaBox =
+                document.getElementById(
+                    'modal-lista-ganadores'
+                );
+
+            listaBox.innerHTML = '';
+
+            let ganadores =
+                0;
+
+
+            res.apuestas_ronda.forEach(
+                ap => {
+
+                    if (
+                        ap.numero === numero
+                    ) {
+
+                        ganadores++;
+
+                        listaBox.innerHTML += `
+
+                            <div class="ganador-item">
+
+                                <span>
+                                    <b>
+                                        ${ap.username}
+                                    </b>
+
+                                    <br>
+
+                                    Apuesta:
+                                    S/ ${ap.monto}
+                                </span>
+
+                                <span style="
+                                    color:#22c55e;
+                                    font-weight:bold;
+                                ">
+                                    + S/
+                                    ${ap.monto * 2}
+                                </span>
+
+                            </div>
+                        `;
+                    }
+                }
+            );
+
+
+            if (ganadores === 0) {
+
+                listaBox.innerHTML = `
+
+                    <div style="
+                        text-align:center;
+                        color:#a1a1aa;
+                        font-size:12px;
+                        padding:10px;
+                    ">
+                        Ningún usuario acertó
+                        al número ${numero}
+                        esta ronda.
+                    </div>
+                `;
+            }
+
+
+            /*
+             * Mostrar ventana
+             */
+
+            document.getElementById(
+                'modal-ganadores'
+            ).style.display = 'flex';
+        }
+
+
+        /* =====================================================
+           INICIALIZAR
+           ===================================================== */
+
         construirTablero();
-        setInterval(consultarEstadoSala, 1000);
+
+        consultarEstadoSala();
+
+        setInterval(
+            consultarEstadoSala,
+            1000
+        );
+
     </script>
+
 </body>
 </html>
