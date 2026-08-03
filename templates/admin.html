@@ -31,8 +31,12 @@
         input[type="number"] { width: 100px; padding: 8px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 6px; color: white; font-size: 13px; }
         .btn-update { background: #22c55e; color: black; border: none; padding: 8px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
         .btn-update:hover { background: #16a34a; color: white; }
-        .btn-sala { background: #3b82f6; color: white; border: none; padding: 14px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 16px; }
+        
+        .btn-sala-container { display: flex; gap: 12px; }
+        .btn-sala { background: #3b82f6; color: white; border: none; padding: 14px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
         .btn-sala:hover { background: #2563eb; }
+        .btn-cerrar-sala { background: #ef4444; color: white; border: none; padding: 14px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .btn-cerrar-sala:hover { background: #dc2626; }
 
         .win { color: #22c55e; font-weight: bold; }
         .loss { color: #ef4444; font-weight: bold; }
@@ -45,11 +49,14 @@
             <a href="/" class="back-btn">⬅ Volver al Juego</a>
         </div>
 
-        <!-- Control de Sala en Vivo (Automático) -->
+        <!-- Control de Sala en Vivo (Ciclo Continuo Automático) -->
         <div class="card">
-            <h2>🎲 CONTROL DE SALA EN VIVO</h2>
-            <p style="color: #a1a1aa; font-size: 13px; margin-bottom: 15px;">Al hacer clic, la sala se abrirá por 20 segundos para las apuestas. Al terminar, el sistema elegirá el ganador automáticamente y activará el ESP32.</p>
-            <button onclick="abrirSala()" class="btn-sala">🚀 Abrir Nueva Sala / Iniciar Ronda</button>
+            <h2>🎲 CONTROL DE SALA EN VIVO (CICLO CONTINUO)</h2>
+            <p style="color: #a1a1aa; font-size: 13px; margin-bottom: 15px;">Inicia el ciclo automático de rondas (20s de apuestas + giro físico con ESP32 + pausa). Las rondas se repetirán de forma continua hasta que decidas cerrar la sala.</p>
+            <div class="btn-sala-container">
+                <button onclick="abrirSala()" class="btn-sala">🚀 Iniciar Ciclo Continuo de Sala</button>
+                <button onclick="cerrarSala()" class="btn-cerrar-sala">🛑 Cerrar Sala por Completo</button>
+            </div>
             <p id="mensaje-sala" style="margin-top: 12px; font-weight: bold; font-size: 14px; text-align: center;"></p>
         </div>
 
@@ -116,7 +123,7 @@
         function abrirSala() {
             const msg = document.getElementById('mensaje-sala');
             msg.style.color = '#facc15';
-            msg.innerText = '⏳ Abriendo sala y activando temporizador de 20s...';
+            msg.innerText = '⏳ Iniciando ciclo continuo de la sala...';
 
             fetch('/admin/abrir_sala', {
                 method: 'POST',
@@ -126,7 +133,32 @@
             .then(data => {
                 if (data.status === 'ok') {
                     msg.style.color = '#22c55e';
-                    msg.innerText = '✅ ¡Sala abierta! Los usuarios ya pueden apostar.';
+                    msg.innerText = '✅ ¡Ciclo continuo activo! Las rondas correrán automáticamente.';
+                } else {
+                    msg.style.color = '#ef4444';
+                    msg.innerText = '❌ Error: ' + data.message;
+                }
+            })
+            .catch(err => {
+                msg.style.color = '#ef4444';
+                msg.innerText = '❌ Error de conexión con el servidor.';
+            });
+        }
+
+        function cerrarSala() {
+            const msg = document.getElementById('mensaje-sala');
+            msg.style.color = '#facc15';
+            msg.innerText = '⏳ Cerrando la sala por completo...';
+
+            fetch('/admin/cerrar_sala', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    msg.style.color = '#ef4444';
+                    msg.innerText = '🛑 Sala cerrada exitosamente. El ciclo se ha detenido.';
                 } else {
                     msg.style.color = '#ef4444';
                     msg.innerText = '❌ Error: ' + data.message;

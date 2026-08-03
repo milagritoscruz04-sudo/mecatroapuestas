@@ -13,10 +13,11 @@ app.secret_key = "mecatroapuestas_secret_key"
 # IP actualizada del ESP32
 ESP32_IP = "http://192.168.18.100"
 
-# Estado global de la sala en vivo controlada por el administrador
+# Estado global de la sala en vivo controlada por el administrador (Ciclo Continuo)
 SALA_ESTADO = {
-    "activa": False,
-    "tiempo_restante": 0,
+    "sistema_activo": False,  # Controla si el ciclo automático está encendido
+    "activa": False,          # Indica si la ronda actual está abierta para apostar
+    "tiempo_restante": 0,     # Temporizador de la ronda (20s)
     "apuestas": [],
     "ultimo_resultado": None
 }
@@ -228,33 +229,30 @@ def admin_panel():
     
     return render_template('admin.html', usuarios=usuarios, historial=historial)
 
-@app.route('/admin/abrir_sala', methods=['POST'])
-def abrir_sala_admin():
-    admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
-    if session.get('username') not in admins_autorizados:
-        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
-    
-    if SALA_ESTADO["activa"]:
-        return jsonify({'status': 'error', 'message': 'Ya hay una sala activa'}), 400
+# Bucle automático en segundo plano para el ciclo continuo de la sala
+def bucle_ciclo_continuo():
+    while SALA_ESTADO["sistema_activo"]:
+        # 1. Abrir ronda por 20 segundos
+        SALA_ESTADO["activa"] = True
+        SALA_ESTADO["tiempo_restante"] = 20
+        SALA_ESTADO["apuestas"] = []
+        SALA_ESTADO["ultimo_resultado"] = None
 
-    SALA_ESTADO["activa"] = True
-    SALA_ESTADO["tiempo_restante"] = 20
-    SALA_ESTADO["apuestas"] = []
-    SALA_ESTADO["ultimo_resultado"] = None
-
-    def temporizador_sala():
-        while SALA_ESTADO["tiempo_restante"] > 0:
+        while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
             time.sleep(1)
             SALA_ESTADO["tiempo_restante"] -= 1
 
+        if not SALA_ESTADO["sistema_activo"]:
+            break
+
+        # 2. Cerrar apuestas y procesar ganador
         SALA_ESTADO["activa"] = False
-        
         numero_ganador = calcular_ganador_casa(SALA_ESTADO["apuestas"])
         color_ganador = obtener_color(numero_ganador)
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         for ap in SALA_ESTADO["apuestas"]:
             gano = (ap['numero'] == numero_ganador) and (ap['color'].lower() == color_ganador.lower())
             cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
@@ -262,7 +260,7 @@ def abrir_sala_admin():
             if user:
                 nuevo_saldo = user['saldo'] + ap['monto'] if gano else user['saldo'] - ap['monto']
                 resultado_str = "GANASTE" if gano else "PERDISTE"
-                
+
                 cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
                 cursor.execute('''
                     INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado)
@@ -279,15 +277,43 @@ def abrir_sala_admin():
             "apuestas_ronda": SALA_ESTADO["apuestas"]
         }
 
-        time.sleep(1)
+        # 3. Activar hardware ESP32 centralizado (sonido=1, luces=1)
         enviar_a_esp32_async(numero_ganador, 1, 1)
 
-    threading.Thread(target=temporizador_sala).start()
-    return jsonify({'status': 'ok', 'message': 'Sala abierta con éxito'})
+        # Pausa de transición corta antes de iniciar la siguiente ronda automática
+        tiempo_pausa = 5
+        while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
+            time.sleep(1)
+            tiempo_pausa -= 1
+
+@app.route('/admin/abrir_sala', methods=['POST'])
+def abrir_sala_admin():
+    admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
+    if session.get('username') not in admins_autorizados:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
+    
+    if SALA_ESTADO["sistema_activo"]:
+        return jsonify({'status': 'error', 'message': 'El sistema de ciclos ya está activo'}), 400
+
+    SALA_ESTADO["sistema_activo"] = True
+    threading.Thread(target=bucle_ciclo_continuo, daemon=True).start()
+    return jsonify({'status': 'ok', 'message': 'Ciclo continuo de sala iniciado con éxito'})
+
+@app.route('/admin/cerrar_sala', methods=['POST'])
+def cerrar_sala_admin():
+    admins_autorizados = ['Capi admin', 'El diavlo', 'admin']
+    if session.get('username') not in admins_autorizados:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
+
+    SALA_ESTADO["sistema_activo"] = False
+    SALA_ESTADO["activa"] = False
+    SALA_ESTADO["tiempo_restante"] = 0
+    return jsonify({'status': 'ok', 'message': 'Sala cerrada por completo'})
 
 @app.route('/estado_sala', methods=['GET'])
 def estado_sala():
     return jsonify({
+        "sistema_activo": SALA_ESTADO["sistema_activo"],
         "activa": SALA_ESTADO["activa"],
         "tiempo_restante": SALA_ESTADO["tiempo_restante"],
         "apuestas": SALA_ESTADO["apuestas"],
@@ -300,7 +326,7 @@ def apostar_sala():
         return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
     
     if not SALA_ESTADO["activa"]:
-        return jsonify({'status': 'error', 'message': 'No hay ninguna sala abierta en este momento'}), 400
+        return jsonify({'status': 'error', 'message': 'No hay ninguna ronda abierta en este momento'}), 400
     
     data = request.json
     monto = float(data.get('monto', 0))

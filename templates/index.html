@@ -3,352 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MECATROAPUESTAS - Casino Ruleta</title>
+    <title>MECATROAPUESTAS - Sala en Vivo</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
         body { 
             background-image: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)), url("{{ url_for('static', filename='fondoindex.png') }}");
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
             background-attachment: fixed;
             color: #f8fafc; 
-            padding: 15px; 
+            padding: 20px; 
             min-height: 100vh;
         }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: rgba(24, 24, 27, 0.85); padding: 18px 25px; border-radius: 14px; border: 1px solid #27272a; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .brand { font-size: 20px; font-weight: 900; color: #22c55e; letter-spacing: 1.5px; }
+        .user-info { display: flex; gap: 20px; align-items: center; font-size: 14px; }
+        .saldo-badge { background: #18181b; padding: 8px 14px; border-radius: 8px; border: 1px solid #27272a; font-weight: bold; color: #22c55e; }
+        .btn-admin { background: #3b82f6; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; }
+        .btn-admin:hover { background: #2563eb; }
+        .btn-logout { background: #ef4444; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; }
+        .btn-logout:hover { background: #dc2626; }
+
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        @media(max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid #27272a; padding: 22px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        h2 { font-size: 15px; color: #a1a1aa; margin-bottom: 12px; font-weight: 800; letter-spacing: 1px; }
+
+        /* Estado de la Sala en Vivo */
+        .status-box { text-align: center; padding: 15px; border-radius: 10px; background: rgba(9, 9, 11, 0.6); border: 1px solid #27272a; margin-bottom: 15px; }
+        .timer-display { font-size: 28px; font-weight: 900; color: #facc15; margin-top: 5px; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; max-width: 650px; margin: 0 auto 15px; padding: 14px 20px; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(10px); border-radius: 14px; border: 1px solid #27272a; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.15); }
-        .burger-btn { background: none; border: none; color: #f8fafc; font-size: 24px; cursor: pointer; }
-        .brand-title { font-size: 20px; font-weight: 900; color: #ef4444; letter-spacing: 1.5px; text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        /* Tablero de Ruleta */
+        .ruleta-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; }
+        .casilla { 
+            padding: 14px 0; text-align: center; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
+        }
+        .casilla:hover { transform: scale(1.05); filter: brightness(1.2); }
+        .casilla.selected { border-color: #facc15; box-shadow: 0 0 12px rgba(250, 204, 21, 0.6); }
+        .c-verde { background: #16a34a; color: white; }
+        .c-rojo { background: #dc2626; color: white; }
+        .c-negro { background: #18181b; color: white; border: 1px solid #3f3f46; }
 
-        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 99; backdrop-filter: blur(4px); }
-        .sidebar { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #18181b; z-index: 100; transition: left 0.3s ease; padding: 25px 20px; border-right: 1px solid #27272a; display: flex; flex-direction: column; }
-        .sidebar.active { left: 0; }
-        .sidebar-overlay.active { display: block; }
-        
-        .profile-card { background: #09090b; padding: 20px; border-radius: 12px; border: 1px solid #27272a; text-align: center; margin-bottom: 25px; }
-        .avatar { width: 65px; height: 65px; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; font-size: 26px; font-weight: bold; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; border: 2px solid #ef4444; }
-        .menu-btn { width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #cbd5e1; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 8px; margin-bottom: 8px; }
-        .menu-btn:hover { background: #27272a; color: #ef4444; }
-        .logout-link { color: #ef4444; text-decoration: none; font-weight: 600; padding: 12px; display: block; text-align: center; border: 1px solid #ef4444; border-radius: 8px; margin-top: auto; }
+        .controls-apuesta { display: flex; flex-direction: column; gap: 12px; }
+        .input-group { display: flex; gap: 10px; align-items: center; }
+        input[type="number"] { flex: 1; padding: 10px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 8px; color: white; font-size: 14px; }
+        .btn-apostar { background: #22c55e; color: black; border: none; padding: 12px; font-weight: 900; border-radius: 8px; cursor: pointer; font-size: 15px; width: 100%; letter-spacing: 0.5px; }
+        .btn-apostar:hover { background: #16a34a; color: white; }
+        .btn-apostar:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
 
-        .card { max-width: 650px; margin: 0 auto; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.2); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-        .saldo-box { text-align: center; background: rgba(9, 9, 11, 0.8); padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #27272a; }
-        .saldo-box label { font-size: 11px; color: #a1a1aa; letter-spacing: 1.5px; font-weight: bold; }
-        .saldo-box .monto { font-size: 34px; color: #22c55e; font-weight: 900; text-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
-
-        .section-title { font-size: 12px; color: #a1a1aa; margin: 15px 0 8px; font-weight: 800; letter-spacing: 1px; }
-
-        .color-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .color-selector label { flex: 1; text-align: center; padding: 14px 5px; background: rgba(9, 9, 11, 0.8); border: 2px solid #27272a; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 14px; transition: 0.2s; }
-        .color-selector input { display: none; }
-        .color-selector label.rojo { color: #ef4444; }
-        .color-selector label.negro { color: #e4e4e7; }
-        .color-selector label.verde { color: #22c55e; }
-        .color-selector input:checked + label.rojo { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
-        .color-selector input:checked + label.negro { border-color: #a1a1aa; background: rgba(255, 255, 255, 0.15); }
-        .color-selector input:checked + label.verde { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); }
-
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        select, input[type="number"] { width: 100%; padding: 12px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 8px; color: white; font-size: 15px; outline: none; }
-
-        .effects-box { display: flex; justify-content: space-around; background: rgba(9, 9, 11, 0.8); padding: 12px; border-radius: 10px; border: 1px solid #27272a; margin-top: 15px; }
-        .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #27272a; transition: .3s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #dc2626; }
-        input:checked + .slider:before { transform: translateX(20px); }
-
-        .btn-action { width: 100%; padding: 16px; background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); border: none; border-radius: 10px; color: white; font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 18px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); }
-        .btn-action:disabled { background: #3f3f46; cursor: not-allowed; box-shadow: none; color: #71717a; }
-
-        /* Estilos Sala en Vivo */
-        .timer-box { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; padding: 12px; border-radius: 10px; text-align: center; margin-top: 15px; margin-bottom: 15px; }
-        .timer-text { font-size: 18px; font-weight: 900; color: #ef4444; }
-        
-        .live-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
-        .box-panel { background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 10px; padding: 12px; max-height: 200px; overflow-y: auto; }
-        .box-title { font-size: 12px; font-weight: bold; color: #ef4444; margin-bottom: 8px; border-bottom: 1px solid #27272a; padding-bottom: 4px; }
-        .item-fila { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #18181b; }
-
-        #resultado { text-align: center; margin-top: 15px; min-height: 48px; padding: 12px; background: rgba(9, 9, 11, 0.8); border-radius: 8px; font-size: 15px; border: 1px dashed #27272a; display: flex; align-items: center; justify-content: center; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 101; justify-content: center; align-items: center; padding: 15px; }
-        .modal-content { background: #18181b; border-radius: 16px; border: 1px solid #27272a; padding: 20px; width: 100%; max-width: 550px; max-height: 80vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #27272a; padding-bottom: 10px; }
-        .close-btn { background: none; border: none; color: #a1a1aa; font-size: 20px; cursor: pointer; }
-
+        /* Historial y Resultado */
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 10px; text-align: center; border-bottom: 1px solid #27272a; }
-        th { color: #a1a1aa; font-weight: 600; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #27272a; }
+        th { color: #a1a1aa; font-weight: 600; background: rgba(9, 9, 11, 0.4); }
         .win { color: #22c55e; font-weight: bold; }
         .loss { color: #ef4444; font-weight: bold; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <button class="burger-btn" onclick="toggleMenu()">☰</button>
-        <div class="brand-title">MECATROAPUESTAS</div>
-        <div style="width: 24px;"></div>
-    </div>
-
-    <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
-    <div class="sidebar" id="sidebar">
-        <div class="profile-card">
-            <div class="avatar">{{ usuario[0].upper() }}</div>
-            <h3 style="color: white; font-size: 18px;">{{ usuario }}</h3>
-            <p style="color: #ef4444; font-size: 13px; font-weight: bold; margin-top: 4px;">ID: {{ user_id }}</p>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="brand">🎲 MECATROAPUESTAS</div>
+            <div class="user-info">
+                <span>👤 <b>{{ usuario }}</b> (ID: {{ user_id }})</span>
+                <div class="saldo-badge">Saldo: S/ <span id="saldo-txt">{{ saldo }}</span></div>
+                {% if es_admin %}
+                <a href="/admin" class="btn-admin">⚙️ Panel Admin</a>
+                {% endif %}
+                <a href="/logout" class="btn-logout">Cerrar Sesión</a>
+            </div>
         </div>
 
-        <div class="menu-items">
-            <button class="menu-btn" onclick="openHistorial()">📋 Mis apuestas (Historial)</button>
-            {% if usuario in ['Capi admin', 'El diavlo'] %}
-            <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e; display:block;">Panel Admin Creadores</a>
-            {% endif %}
-        </div>
-
-        <a href="/logout" class="logout-link">Cerrar Sesión</a>
-    </div>
-
-    <div class="card">
-        <div class="saldo-box">
-            <label>MI SALDO DISPONIBLE</label>
-            <div class="monto">S/ <span id="saldo">{{ saldo }}</span></div>
-        </div>
-
-        <div class="section-title">1. SELECCIONA COLOR</div>
-        <div class="color-selector">
-            <input type="radio" name="color" id="c_rojo" value="Rojo" checked onchange="actualizarNumeros()">
-            <label for="c_rojo" class="rojo">🔴 Rojo</label>
-            
-            <input type="radio" name="color" id="c_negro" value="Negro" onchange="actualizarNumeros()">
-            <label for="c_negro" class="negro">⚫ Negro</label>
-            
-            <input type="radio" name="color" id="c_verde" value="Verde" onchange="actualizarNumeros()">
-            <label for="c_verde" class="verde">🟢 Verde</label>
-        </div>
-
-        <div class="controls">
+        <div class="main-grid">
+            <!-- Columna Izquierda: Sala en Vivo y Tablero -->
             <div>
-                <div class="section-title" style="margin-top:0;">2. NÚMERO</div>
-                <select id="numero"></select>
-            </div>
-            <div>
-                <div class="section-title" style="margin-top:0;">3. MONTO</div>
-                <input type="number" id="apuesta" placeholder="Ej: 20">
-            </div>
-        </div>
+                <div class="card">
+                    <h2>🎯 ESTADO DE LA SALA EN VIVO</h2>
+                    <div class="status-box">
+                        <div id="estado-texto" style="font-weight: bold; font-size: 15px; color: #a1a1aa;">Conectando con la sala...</div>
+                        <div class="timer-display" id="timer-txt">--</div>
+                    </div>
 
-        <!-- SECCIÓN SALA EN VIVO -->
-        <div class="timer-box">
-            <div style="font-size: 11px; color: #a1a1aa; font-weight: bold;">ESTADO DE LA SALA</div>
-            <div class="timer-text" id="estado_sala_txt">CARGANDO SALA...</div>
-        </div>
+                    <h2 style="margin-top: 15px;">TABLERO DE APUESTAS (0 al 23)</h2>
+                    <div class="ruleta-grid" id="tablero-ruleta">
+                        <!-- Generado por JS -->
+                    </div>
 
-        <div class="effects-box">
-            <div class="toggle-item">
-                <span>Sonido</span>
-                <label class="switch">
-                    <input type="checkbox" id="efecto_sonido" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="toggle-item">
-                <span>Luces LED</span>
-                <label class="switch">
-                    <input type="checkbox" id="efecto_luces" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-        </div>
-
-        <button class="btn-action" id="btn_apostar" onclick="apostarSala()">🎲 APOSTAR EN SALA EN VIVO</button>
-
-        <div class="live-grid">
-            <div class="box-panel">
-                <div class="box-title">👥 APUESTAS DE LA RONDA ACTUAL</div>
-                <div id="lista_apuestas_mesa">
-                    <i style="color: #a1a1aa; font-size: 12px;">No hay apuestas registradas aún.</i>
+                    <div class="controls-apuesta">
+                        <div class="input-group">
+                            <span style="font-size: 13px; color: #a1a1aa; font-weight: bold;">Monto S/:</span>
+                            <input type="number" id="monto-input" min="1" step="1" value="10">
+                        </div>
+                        <button onclick="realizarApuesta()" id="btn-enviar-apuesta" class="btn-apostar" disabled>🔒 ESPERANDO APERTURA DE RONDA</button>
+                    </div>
+                    <p id="mensaje-apuesta" style="margin-top: 10px; font-weight: bold; font-size: 13px; text-align: center;"></p>
                 </div>
             </div>
 
-            <div class="box-panel">
-                <div class="box-title">🏆 ÚLTIMOS GANADORES DE LA MESA</div>
-                <div id="lista_ganadores_mesa">
-                    <i style="color: #a1a1aa; font-size: 12px;">Esperando resultados...</i>
+            <!-- Columna Derecha: Último Resultado del ESP32 e Historial Personal -->
+            <div>
+                <div class="card">
+                    <h2>🎰 ÚLTIMO RESULTADO (ESP32)</h2>
+                    <div id="ultimo-resultado-box" style="text-align: center; padding: 15px; background: rgba(9, 9, 11, 0.6); border-radius: 10px; border: 1px solid #27272a; font-size: 14px;">
+                        Esperando giro de la ruleta física...
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📋 TU HISTORIAL RECIENTE</h2>
+                    <div style="max-height: 320px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Monto</th>
+                                    <th>Elegido</th>
+                                    <th>Ganador</th>
+                                    <th>Res</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for h in historial %}
+                                <tr>
+                                    <td>S/ {{ h.monto }}</td>
+                                    <td>{{ h.numero_elegido }} ({{ h.color_elegido }})</td>
+                                    <td>{{ h.numero_ganador }} ({{ h.color_ganador }})</td>
+                                    <td class="{{ 'win' if h.resultado == 'GANASTE' else 'loss' }}">{{ h.resultado }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div id="resultado">Esperando apertura de apuestas...</div>
-    </div>
-
-    <!-- Modal Historial -->
-    <div class="modal" id="modalHistorial">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="color: white;">📋 Historial Personal</h3>
-                <button class="close-btn" onclick="closeHistorial()">✕</button>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Elegido</th>
-                        <th>Color</th>
-                        <th>Monto</th>
-                        <th>Ganador</th>
-                        <th>Resultado</th>
-                    </tr>
-                </thead>
-                <tbody id="historial-body">
-                    {% for row in historial %}
-                    <tr>
-                        <td>{{ row.numero_elegido }}</td>
-                        <td>{{ row.color_elegido }}</td>
-                        <td>S/ {{ row.monto }}</td>
-                        <td>{{ row.numero_ganador }} ({{ row.color_ganador }})</td>
-                        <td class="{{ 'win' if row.resultado == 'GANASTE' else 'loss' }}">{{ row.resultado }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
     </div>
 
     <script>
-        const numerosPorColor = {
-            'Verde': [0],
-            'Negro': [8, 23, 5, 2, 7, 3, 4, 9, 15, 14, 20, 13],
-            'Rojo': [10, 16, 18, 12, 21, 22, 19, 1, 11, 17, 6]
+        let numeroSeleccionado = null;
+        let colorSeleccionado = null;
+
+        // Definición de colores de la ruleta (0 al 23)
+        const coloresRuleta = {
+            0: 'Verde',
+            1: 'Rojo', 2: 'Negro', 3: 'Negro', 4: 'Negro', 5: 'Negro',
+            6: 'Rojo', 7: 'Negro', 8: 'Negro', 9: 'Negro', 10: 'Rojo',
+            11: 'Rojo', 12: 'Rojo', 13: 'Negro', 14: 'Negro', 15: 'Negro',
+            16: 'Rojo', 17: 'Rojo', 18: 'Rojo', 19: 'Rojo', 20: 'Negro',
+            21: 'Rojo', 22: 'Rojo', 23: 'Negro'
         };
 
-        function actualizarNumeros() {
-            const colorSeleccionado = document.querySelector('input[name="color"]:checked').value;
-            const selectNumero = document.getElementById("numero");
-            selectNumero.innerHTML = "";
-
-            numerosPorColor[colorSeleccionado].forEach(num => {
-                const opt = document.createElement("option");
-                opt.value = num;
-                opt.textContent = num;
-                selectNumero.appendChild(opt);
-            });
-        }
-        actualizarNumeros();
-
-        function toggleMenu() {
-            document.getElementById("sidebar").classList.toggle("active");
-            document.getElementById("overlay").classList.toggle("active");
-        }
-        function openHistorial() { toggleMenu(); document.getElementById("modalHistorial").style.display = "flex"; }
-        function closeHistorial() { document.getElementById("modalHistorial").style.display = "none"; }
-
-        function agregarFilaHistorial(elegido, colorElegido, monto, numGanador, colorGanador, resultado) {
-            const tbody = document.getElementById("historial-body");
-            const esGanador = resultado === 'GANASTE';
-            const claseResultado = esGanador ? 'win' : 'loss';
-            
-            const nuevaFila = document.createElement('tr');
-            nuevaFila.innerHTML = `
-                <td>${elegido}</td>
-                <td>${colorElegido}</td>
-                <td>S/ ${monto}</td>
-                <td>${numGanador} (${colorGanador})</td>
-                <td class="${claseResultado}">${resultado}</td>
-            `;
-            tbody.insertBefore(nuevaFila, tbody.firstChild);
+        function construirTablero() {
+            const grid = document.getElementById('tablero-ruleta');
+            grid.innerHTML = '';
+            for (let i = 0; i <= 23; i++) {
+                const color = coloresRuleta[i];
+                const claseColor = color === 'Verde' ? 'c-verde' : (color === 'Negro' ? 'c-negro' : 'c-rojo');
+                const div = document.createElement('div');
+                div.className = `casilla ${claseColor}`;
+                div.innerText = i;
+                div.onclick = () => seleccionarCasilla(i, color, div);
+                grid.appendChild(div);
+            }
         }
 
-        async function apostarSala() {
-            const apuesta = parseFloat(document.getElementById("apuesta").value);
-            const numero = parseInt(document.getElementById("numero").value);
-            const color = document.querySelector('input[name="color"]:checked').value;
-            const sonido = document.getElementById("efecto_sonido").checked;
-            const luces = document.getElementById("efecto_luces").checked;
+        function seleccionarCasilla(numero, color, elemento) {
+            document.querySelectorAll('.casilla').forEach(el => el.classList.remove('selected'));
+            elemento.classList.add('selected');
+            numeroSeleccionado = numero;
+            colorSeleccionado = color;
+        }
 
-            if (!apuesta || apuesta <= 0) return alert("Ingrese un monto válido");
+        function realizarApuesta() {
+            if (numeroSeleccionado === null) {
+                alert('Por favor selecciona un número del tablero.');
+                return;
+            }
+            const monto = parseFloat(document.getElementById('monto-input').value);
+            if (isNaN(monto) || monto <= 0) {
+                alert('Ingresa un monto válido.');
+                return;
+            }
 
-            const res = await fetch('/apostar_sala', {
+            fetch('/apostar_sala', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ monto: apuesta, numero: numero, color: color, sonido: sonido, luces: luces })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ monto: monto, numero: numeroSeleccionado, color: colorSeleccionado })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const msg = document.getElementById('mensaje-apuesta');
+                if (data.status === 'ok') {
+                    msg.style.color = '#22c55e';
+                    msg.innerText = '✅ ¡Apuesta registrada con éxito en la sala!';
+                } else {
+                    msg.style.color = '#ef4444';
+                    msg.innerText = '❌ ' + data.message;
+                }
+            })
+            .catch(err => {
+                console.error(err);
             });
-
-            const data = await res.json();
-            if (data.status === 'ok') {
-                document.getElementById("saldo").innerText = data.nuevo_saldo;
-                document.getElementById("resultado").innerText = "¡Apuesta enviada con éxito a la sala!";
-                sincronizarSala();
-            } else {
-                alert(data.message);
-            }
         }
 
-        async function sincronizarSala() {
-            try {
-                const res = await fetch('/estado_sala');
-                const data = await res.json();
+        // Consultar el estado de la sala cada 1 segundo en tiempo real
+        function consultarEstadoSala() {
+            fetch('/estado_sala')
+            .then(res => res.json())
+            .then(data => {
+                const estadoTxt = document.getElementById('estado-texto');
+                const timerTxt = document.getElementById('timer-txt');
+                const btnApostar = document.getElementById('btn-enviar-apuesta');
+                const ultimoResBox = document.getElementById('ultimo-resultado-box');
 
-                const estadoTxt = document.getElementById("estado_sala_txt");
-                const btnApostar = document.getElementById("btn_apostar");
-                const resBox = document.getElementById("resultado");
-
-                if (data.estado === 'abierta') {
-                    estadoTxt.innerHTML = `🟢 APUESTAS ABIERTAS (Cierra en ${data.tiempo_restante}s)`;
+                if (!data.sistema_activo) {
+                    estadoTxt.style.color = '#ef4444';
+                    estadoTxt.innerText = '🛑 El administrador no ha iniciado el ciclo de la sala.';
+                    timerTxt.innerText = '--';
+                    btnApostar.disabled = true;
+                    btnApostar.innerText = '🔒 SALA CERRADA';
+                } else if (data.activa) {
+                    estadoTxt.style.color = '#22c55e';
+                    estadoTxt.innerText = '🟢 ¡RONDA DE APUESTAS ABIERTA!';
+                    timerTxt.innerText = data.tiempo_restante + 's';
                     btnApostar.disabled = false;
-                    btnApostar.innerText = "🎲 APOSTAR EN SALA EN VIVO";
-                } else if (data.estado === 'girando') {
-                    estadoTxt.innerHTML = `🎰 ¡RULETA GIRANDO FÍSICAMENTE!`;
-                    btnApostar.disabled = true;
-                    btnApostar.innerText = "RULETA EN MOVIMIENTO...";
-                    resBox.innerHTML = "<i>La ruleta física está girando...</i>";
-                } else if (data.estado === 'resultado') {
-                    estadoTxt.innerHTML = `⏳ ESPERANDO NUEVA RONDA...`;
-                    btnApostar.disabled = true;
-                    btnApostar.innerText = "RONDA FINALIZADA";
-                    if (data.ultimo_resultado) {
-                        resBox.innerHTML = `Salió: <b>${data.ultimo_resultado.numero} (${data.ultimo_resultado.color})</b>`;
-                    }
-                }
-
-                // Renderizar listado de apuestas de la ronda actual
-                const listaApuestas = document.getElementById("lista_apuestas_mesa");
-                if (data.apuestas && data.apuestas.length > 0) {
-                    listaApuestas.innerHTML = data.apuestas.map(a => `
-                        <div class="item-fila">
-                            <span>👤 <b>${a.username}</b></span>
-                            <span>S/ ${a.monto} a ${a.color} (${a.numero})</span>
-                        </div>
-                    `).join('');
+                    btnApostar.innerText = '🎲 APOSTAR AHORA';
                 } else {
-                    listaApuestas.innerHTML = '<i style="color: #a1a1aa; font-size: 12px;">No hay apuestas en esta ronda aún.</i>';
+                    estadoTxt.style.color = '#facc15';
+                    estadoTxt.innerText = '⏳ GIRANDO RULETA FÍSICA / PROCESANDO...';
+                    timerTxt.innerText = '0s';
+                    btnApostar.disabled = true;
+                    btnApostar.innerText = '🔒 APUESTAS CERRADAS';
                 }
 
-                // Renderizar últimos ganadores
-                const listaGanadores = document.getElementById("lista_ganadores_mesa");
-                if (data.ultimos_ganadores && data.ultimos_ganadores.length > 0) {
-                    listaGanadores.innerHTML = data.ultimos_ganadores.map(g => `
-                        <div class="item-fila">
-                            <span><b>${g.username}</b> (${g.numero} - ${g.color})</span>
-                            <span class="win">+S/ ${g.premio}</span>
-                        </div>
-                    `).join('');
-                } else {
-                    listaGanadores.innerHTML = '<i style="color: #a1a1aa; font-size: 12px;">Sin ganadores recientes.</i>';
+                if (data.ultimo_resultado) {
+                    const res = data.ultimo_resultado;
+                    ultimoResBox.innerHTML = `
+                        <b>Número Ganador:</b> <span style="font-size: 18px; color: #22c55e;">${res.numero_ganador}</span> (${res.color_ganador})<br>
+                        <span style="font-size: 11px; color: #a1a1aa;">¡El ESP32 ha completado el giro físico!</span>
+                    `;
                 }
-
-            } catch (e) {
-                console.error("Error sincronizando sala:", e);
-            }
+            })
+            .catch(err => console.error("Error sincronizando estado:", err));
         }
 
-        // Consultar cada segundo el estado de la sala en tiempo real
-        setInterval(sincronizarSala, 1000);
-        sincronizarSala();
+        construirTablero();
+        setInterval(consultarEstadoSala, 1000);
     </script>
 </body>
 </html>
