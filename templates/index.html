@@ -16,9 +16,20 @@
             min-height: 100vh;
         }
         .container { max-width: 1100px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: rgba(24, 24, 27, 0.85); padding: 18px 25px; border-radius: 14px; border: 1px solid #27272a; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Header y Menú Hamburguesa (3 rayitas) */
+        .header { display: flex; justify-content: space-between; align-items: center; background: rgba(24, 24, 27, 0.85); padding: 16px 22px; border-radius: 14px; border: 1px solid #27272a; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        .brand-area { display: flex; align-items: center; gap: 15px; }
         .brand { font-size: 20px; font-weight: 900; color: #22c55e; letter-spacing: 1.5px; }
-        .user-info { display: flex; gap: 20px; align-items: center; font-size: 14px; }
+        
+        /* Menú Hamburguesa */
+        .menu-icon { font-size: 22px; cursor: pointer; color: #f8fafc; background: #27272a; padding: 6px 12px; border-radius: 6px; border: 1px solid #3f3f46; user-select: none; }
+        .menu-icon:hover { background: #3f3f46; }
+        .dropdown-menu { display: none; position: absolute; top: 70px; left: 20px; background: #18181b; border: 1px solid #27272a; border-radius: 10px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 100; overflow: hidden; }
+        .dropdown-menu a { display: block; padding: 12px 16px; color: #f8fafc; text-decoration: none; font-size: 13px; border-bottom: 1px solid #27272a; font-weight: 600; }
+        .dropdown-menu a:hover { background: #27272a; color: #22c55e; }
+
+        .user-info { display: flex; gap: 15px; align-items: center; font-size: 14px; }
         .saldo-badge { background: #18181b; padding: 8px 14px; border-radius: 8px; border: 1px solid #27272a; font-weight: bold; color: #22c55e; }
         .btn-admin { background: #3b82f6; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; }
         .btn-admin:hover { background: #2563eb; }
@@ -31,11 +42,10 @@
         .card { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid #27272a; padding: 22px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
         h2 { font-size: 15px; color: #a1a1aa; margin-bottom: 12px; font-weight: 800; letter-spacing: 1px; }
 
-        /* Estado de la Sala en Vivo */
         .status-box { text-align: center; padding: 15px; border-radius: 10px; background: rgba(9, 9, 11, 0.6); border: 1px solid #27272a; margin-bottom: 15px; }
         .timer-display { font-size: 28px; font-weight: 900; color: #facc15; margin-top: 5px; }
         
-        /* Tablero de Ruleta */
+        /* Tablero de Ruleta Intercalado */
         .ruleta-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; }
         .casilla { 
             padding: 14px 0; text-align: center; font-weight: bold; font-size: 15px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
@@ -53,7 +63,24 @@
         .btn-apostar:hover { background: #16a34a; color: white; }
         .btn-apostar:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
 
-        /* Historial y Resultado */
+        /* Ventana Gigante / Modal de Ganadores con Efecto Zoom */
+        #modal-ganadores {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #18181b; border: 2px solid #22c55e; border-radius: 20px; padding: 30px; width: 420px; text-align: center;
+            box-shadow: 0 0 50px rgba(34, 197, 94, 0.5);
+            animation: zoomEfecto 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes zoomEfecto {
+            0% { transform: scale(0.2); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .numero-gigante { font-size: 65px; font-weight: 900; color: #22c55e; margin: 10px 0; text-shadow: 0 0 20px rgba(34, 197, 94, 0.8); }
+        .lista-ganadores-box { max-height: 180px; overflow-y: auto; margin-top: 15px; border-top: 1px solid #27272a; padding-top: 10px; text-align: left; }
+        .ganador-item { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 13px; border-bottom: 1px solid #27272a; }
+
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #27272a; }
         th { color: #a1a1aa; font-weight: 600; background: rgba(9, 9, 11, 0.4); }
@@ -62,22 +89,49 @@
     </style>
 </head>
 <body>
+
+    <!-- Ventana Flotante Gigante (Estilo Apuesta Total / Zoom Ganadores) -->
+    <div id="modal-ganadores">
+        <div class="modal-content">
+            <h3 style="color: #a1a1aa; letter-spacing: 2px; font-size: 14px;">🎰 NÚMERO GANADOR DE LA RONDA</h3>
+            <div class="numero-gigante" id="modal-num-ganador">--</div>
+            <div id="modal-color-ganador" style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">--</div>
+            
+            <h4 style="color: #22c55e; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;">🏆 Ganadores de la Ronda</h4>
+            <div class="lista-ganadores-box" id="modal-lista-ganadores">
+                <div style="text-align: center; color: #71717a; font-size: 12px;">Sin ganadores en esta ronda</div>
+            </div>
+            
+            <button onclick="cerrarModalGanadores()" style="margin-top: 20px; background: #22c55e; color: black; border: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">Continuar</button>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Header -->
+        <!-- Header con Menú Hamburguesa -->
         <div class="header">
-            <div class="brand">🎲 MECATROAPUESTAS</div>
+            <div class="brand-area">
+                <div class="menu-icon" onclick="toggleMenu()">☰</div>
+                <div class="brand">🎲 MECATROAPUESTAS</div>
+            </div>
+
+            <!-- Menú Desplegable de las 3 rayitas -->
+            <div class="dropdown-menu" id="dropdownMenu">
+                <a href="#perfil" onclick="verPerfil()">👤 Mi Perfil</a>
+                <a href="#historial" onclick="verHistorial()">📋 Historial de Apuestas</a>
+            </div>
+
             <div class="user-info">
-                <span>👤 <b>{{ usuario }}</b> (ID: {{ user_id }})</span>
+                <span>👤 <b>{{ usuario }}</b></span>
                 <div class="saldo-badge">Saldo: S/ <span id="saldo-txt">{{ saldo }}</span></div>
                 {% if es_admin %}
                 <a href="/admin" class="btn-admin">⚙️ Panel Admin</a>
                 {% endif %}
-                <a href="/logout" class="btn-logout">Cerrar Sesión</a>
+                <a href="/logout" class="btn-logout">Salir</a>
             </div>
         </div>
 
         <div class="main-grid">
-            <!-- Columna Izquierda: Sala en Vivo y Tablero -->
+            <!-- Columna Izquierda: Sala en Vivo y Tablero Intercalado -->
             <div>
                 <div class="card">
                     <h2>🎯 ESTADO DE LA SALA EN VIVO</h2>
@@ -86,9 +140,9 @@
                         <div class="timer-display" id="timer-txt">--</div>
                     </div>
 
-                    <h2 style="margin-top: 15px;">TABLERO DE APUESTAS (0 al 23)</h2>
+                    <h2 style="margin-top: 15px;">TABLERO DE APUESTAS (Distribución Estilo Ruleta)</h2>
                     <div class="ruleta-grid" id="tablero-ruleta">
-                        <!-- Generado por JS -->
+                        <!-- Generado por JS con orden intercalado -->
                     </div>
 
                     <div class="controls-apuesta">
@@ -111,7 +165,7 @@
                     </div>
                 </div>
 
-                <div class="card">
+                <div class="card" id="seccion-historial">
                     <h2>📋 TU HISTORIAL RECIENTE</h2>
                     <div style="max-height: 320px; overflow-y: auto;">
                         <table>
@@ -143,8 +197,16 @@
     <script>
         let numeroSeleccionado = null;
         let colorSeleccionado = null;
+        let ultimoResultadoProcesado = null;
 
-        // Definición de colores de la ruleta (0 al 23)
+        // Distribución intercalada simulando el tablero físico de ruleta (0 al 23)
+        const ordenTableroIntercalado = [
+            0, 10, 5, 18, 2, 14,
+            7, 20, 1, 12, 9, 22,
+            3, 16, 11, 4, 15, 8,
+            19, 6, 23, 13, 17, 21
+        ];
+
         const coloresRuleta = {
             0: 'Verde',
             1: 'Rojo', 2: 'Negro', 3: 'Negro', 4: 'Negro', 5: 'Negro',
@@ -154,10 +216,25 @@
             21: 'Rojo', 22: 'Rojo', 23: 'Negro'
         };
 
+        function toggleMenu() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function verPerfil() {
+            alert("Usuario: {{ usuario }} \nID: {{ user_id }} \nSaldo actual: S/ {{ saldo }}");
+            toggleMenu();
+        }
+
+        function verHistorial() {
+            document.getElementById('seccion-historial').scrollIntoView({ behavior: 'smooth' });
+            toggleMenu();
+        }
+
         function construirTablero() {
             const grid = document.getElementById('tablero-ruleta');
             grid.innerHTML = '';
-            for (let i = 0; i <= 23; i++) {
+            ordenTableroIntercalado.forEach(i => {
                 const color = coloresRuleta[i];
                 const claseColor = color === 'Verde' ? 'c-verde' : (color === 'Negro' ? 'c-negro' : 'c-rojo');
                 const div = document.createElement('div');
@@ -165,7 +242,7 @@
                 div.innerText = i;
                 div.onclick = () => seleccionarCasilla(i, color, div);
                 grid.appendChild(div);
-            }
+            });
         }
 
         function seleccionarCasilla(numero, color, elemento) {
@@ -202,12 +279,14 @@
                     msg.innerText = '❌ ' + data.message;
                 }
             })
-            .catch(err => {
-                console.error(err);
-            });
+            .catch(err => console.error(err));
         }
 
-        // Consultar el estado de la sala cada 1 segundo en tiempo real
+        function cerrarModalGanadores() {
+            document.getElementById('modal-ganadores').style.display = 'none';
+            location.reload(); // Recarga para actualizar saldo e historial automáticamente
+        }
+
         function consultarEstadoSala() {
             fetch('/estado_sala')
             .then(res => res.json())
@@ -231,7 +310,7 @@
                     btnApostar.innerText = '🎲 APOSTAR AHORA';
                 } else {
                     estadoTxt.style.color = '#facc15';
-                    estadoTxt.innerText = '⏳ GIRANDO RULETA FÍSICA / PROCESANDO...';
+                    estadoTxt.innerText = '⏳ GIRANDO RULETA FÍSICA (SUSPENSO)...';
                     timerTxt.innerText = '0s';
                     btnApostar.disabled = true;
                     btnApostar.innerText = '🔒 APUESTAS CERRADAS';
@@ -239,9 +318,42 @@
 
                 if (data.ultimo_resultado) {
                     const res = data.ultimo_resultado;
+                    // Identificador único para disparar el modal con zoom una sola vez por ronda
+                    const idRondaUnico = `${res.numero_ganador}-${res.apuestas_ronda.length}`;
+                    
+                    if (ultimoResultadoProcesado !== idRondaUnico) {
+                        ultimoResultadoProcesado = idRondaUnico;
+                        
+                        // Mostrar ventana emergente con zoom (Efecto Suspenso Ganadores)
+                        document.getElementById('modal-num-ganador').innerText = res.numero_ganador;
+                        document.getElementById('modal-color-ganador').innerText = `Color: ${res.color_ganador}`;
+                        
+                        const listaBox = document.getElementById('modal-lista-ganadores');
+                        listaBox.innerHTML = '';
+                        
+                        let ganadoresEncontrados = false;
+                        res.apuestas_ronda.forEach(ap => {
+                            if (ap.numero === res.numero_ganador) {
+                                ganadoresEncontrados = true;
+                                listaBox.innerHTML += `
+                                    <div class="ganador-item">
+                                        <span><b>${ap.username}</b> (Apuesta S/ ${ap.monto})</span>
+                                        <span style="color: #22c55e; font-weight: bold;">+ S/ ${ap.monto}</span>
+                                    </div>
+                                `;
+                            }
+                        });
+
+                        if (!ganadoresEncontrados) {
+                            listaBox.innerHTML = `<div style="text-align: center; color: #a1a1aa; font-size: 12px; padding: 10px;">Ningún usuario acertó al número ${res.numero_ganador} esta ronda.</div>`;
+                        }
+
+                        document.getElementById('modal-ganadores').style.display = 'flex';
+                    }
+
                     ultimoResBox.innerHTML = `
                         <b>Número Ganador:</b> <span style="font-size: 18px; color: #22c55e;">${res.numero_ganador}</span> (${res.color_ganador})<br>
-                        <span style="font-size: 11px; color: #a1a1aa;">¡El ESP32 ha completado el giro físico!</span>
+                        <span style="font-size: 11px; color: #a1a1aa;">¡El ESP32 completó el giro físico!</span>
                     `;
                 }
             })

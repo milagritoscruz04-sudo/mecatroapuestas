@@ -254,12 +254,17 @@ def bucle_ciclo_continuo():
         cursor = conn.cursor()
 
         for ap in SALA_ESTADO["apuestas"]:
-            gano = (ap['numero'] == numero_ganador) and (ap['color'].lower() == color_ganador.lower())
+            gano = (ap['numero'] == numero_ganador)
             cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
             user = cursor.fetchone()
             if user:
-                nuevo_saldo = user['saldo'] + ap['monto'] if gano else user['saldo'] - ap['monto']
-                resultado_str = "GANASTE" if gano else "PERDISTE"
+                if gano:
+                    premio = ap['monto'] * 2 
+                    nuevo_saldo = user['saldo'] + premio
+                    resultado_str = "GANASTE"
+                else:
+                    nuevo_saldo = user['saldo'] - ap['monto']
+                    resultado_str = "PERDISTE"
 
                 cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
                 cursor.execute('''
