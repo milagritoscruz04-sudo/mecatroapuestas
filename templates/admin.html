@@ -4,801 +4,225 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Admin - MECATROAPUESTAS</title>
-
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-image:
-                linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)),
-                url("{{ url_for('static', filename='fondoindex.png') }}");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            color: #f8fafc;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .header-admin {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(24, 24, 27, 0.85);
-            padding: 20px;
-            border-radius: 14px;
-            border: 1px solid #27272a;
-            margin-bottom: 20px;
-        }
-
-        .brand-title {
-            font-size: 22px;
-            font-weight: 900;
-            color: #22c55e;
-            letter-spacing: 1.5px;
-        }
-
-        .back-btn {
-            background: #27272a;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 14px;
-            border: 1px solid #3f3f46;
-        }
-
-        .back-btn:hover {
-            background: #3f3f46;
-        }
-
-        .card {
-            background: rgba(24, 24, 27, 0.85);
-            backdrop-filter: blur(12px);
-            border-radius: 16px;
-            border: 1px solid #27272a;
-            padding: 22px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-        }
-
-        h2 {
-            font-size: 16px;
-            color: #a1a1aa;
-            margin-bottom: 15px;
-            font-weight: 800;
-            letter-spacing: 1px;
-        }
-
-        /* ==============================
-           CONTROLES DE EFECTOS
-        ============================== */
-
-        .efectos-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        @media(max-width: 600px) {
-            .efectos-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .efecto-box {
-            background: rgba(9, 9, 11, 0.65);
-            border: 1px solid #27272a;
-            border-radius: 12px;
-            padding: 18px;
-            text-align: center;
-        }
-
-        .efecto-titulo {
-            font-size: 15px;
-            font-weight: 800;
-            margin-bottom: 6px;
-        }
-
-        .efecto-descripcion {
-            color: #71717a;
-            font-size: 12px;
-            margin-bottom: 15px;
-        }
-
-        .estado-efecto {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 12px;
-        }
-
-        .estado-on {
-            background: rgba(34, 197, 94, 0.15);
-            color: #22c55e;
-            border: 1px solid #22c55e;
-        }
-
-        .estado-off {
-            background: rgba(239, 68, 68, 0.15);
-            color: #ef4444;
-            border: 1px solid #ef4444;
-        }
-
-        .botones-efecto {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-on,
-        .btn-off {
-            flex: 1;
-            border: none;
-            padding: 10px;
-            border-radius: 7px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .btn-on {
-            background: #22c55e;
-            color: #000;
-        }
-
-        .btn-on:hover {
-            background: #16a34a;
-            color: white;
-        }
-
-        .btn-off {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-off:hover {
-            background: #dc2626;
-        }
-
-        #mensaje-efectos {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        /* ==============================
-           SALA
-        ============================== */
-
-        .btn-sala-container {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn-sala {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 14px 20px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 15px;
-        }
-
-        .btn-sala:hover {
-            background: #2563eb;
-        }
-
-        .btn-cerrar-sala {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 14px 20px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 15px;
-        }
-
-        .btn-cerrar-sala:hover {
-            background: #dc2626;
-        }
-
-        /* ==============================
-           TABLAS
-        ============================== */
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #27272a;
-        }
-
-        th {
-            color: #a1a1aa;
-            font-weight: 600;
-            background: rgba(9, 9, 11, 0.5);
-        }
-
-        input[type="number"] {
-            width: 100px;
-            padding: 8px;
-            background: rgba(9, 9, 11, 0.8);
-            border: 1px solid #27272a;
-            border-radius: 6px;
-            color: white;
-            font-size: 13px;
-        }
-
-        .btn-update {
-            background: #22c55e;
-            color: black;
-            border: none;
-            padding: 8px 14px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .btn-update:hover {
-            background: #16a34a;
-            color: white;
-        }
-
-        .win {
-            color: #22c55e;
-            font-weight: bold;
-        }
-
-        .loss {
-            color: #ef4444;
-            font-weight: bold;
-        }
-
-        .info-central {
-            color: #a1a1aa;
-            font-size: 12px;
-            margin-top: 12px;
-            text-align: center;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-image: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)), url("{{ url_for('static', filename='fondoindex.png') }}"); background-size: cover; background-position: center; background-attachment: fixed; color: #f8fafc; padding: 20px; min-height: 100vh; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header-admin { display: flex; justify-content: space-between; align-items: center; background: rgba(24, 24, 27, 0.85); padding: 20px; border-radius: 14px; border: 1px solid #27272a; margin-bottom: 20px; }
+        .brand-title { font-size: 22px; font-weight: 900; color: #22c55e; letter-spacing: 1.5px; }
+        .back-btn { background: #27272a; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #3f3f46; }
+        .back-btn:hover { background: #3f3f46; }
+        .card { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid #27272a; padding: 22px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        h2 { font-size: 16px; color: #a1a1aa; margin-bottom: 15px; font-weight: 800; letter-spacing: 1px; }
+        .efectos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media(max-width: 600px) { .efectos-grid { grid-template-columns: 1fr; } }
+        .efecto-box { background: rgba(9, 9, 11, 0.65); border: 1px solid #27272a; border-radius: 12px; padding: 18px; text-align: center; }
+        .efecto-titulo { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+        .efecto-descripcion { color: #71717a; font-size: 12px; margin-bottom: 15px; }
+        .estado-efecto { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 12px; }
+        .estado-on { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid #22c55e; }
+        .estado-off { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+        .botones-efecto { display: flex; gap: 8px; }
+        .btn-on, .btn-off { flex: 1; border: none; padding: 10px; border-radius: 7px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .btn-on { background: #22c55e; color: #000; }
+        .btn-on:hover { background: #16a34a; color: white; }
+        .btn-off { background: #ef4444; color: white; }
+        .btn-off:hover { background: #dc2626; }
+        #mensaje-efectos { text-align: center; margin-top: 15px; font-size: 13px; font-weight: bold; }
+        .btn-sala-container { display: flex; gap: 12px; }
+        .btn-sala { background: #3b82f6; color: white; border: none; padding: 14px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .btn-sala:hover { background: #2563eb; }
+        .btn-cerrar-sala { background: #ef4444; color: white; border: none; padding: 14px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; font-size: 15px; }
+        .btn-cerrar-sala:hover { background: #dc2626; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #27272a; }
+        th { color: #a1a1aa; font-weight: 600; background: rgba(9, 9, 11, 0.5); }
+        input[type="number"] { width: 100px; padding: 8px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 6px; color: white; font-size: 13px; }
+        .btn-update { background: #22c55e; color: black; border: none; padding: 8px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-update:hover { background: #16a34a; color: white; }
+        .win { color: #22c55e; font-weight: bold; }
+        .loss { color: #ef4444; font-weight: bold; }
+        .info-central { color: #a1a1aa; font-size: 12px; margin-top: 12px; text-align: center; }
     </style>
 </head>
-
 <body>
-
 <div class="container">
-
-    <!-- HEADER -->
     <div class="header-admin">
-        <div class="brand-title">
-            ⚙️ PANEL DE ADMINISTRACIÓN
-        </div>
-
-        <a href="/" class="back-btn">
-            ⬅ Volver al Juego
-        </a>
+        <div class="brand-title">⚙️ PANEL DE ADMINISTRACIÓN</div>
+        <a href="/" class="back-btn">⬅ Volver al Juego</a>
     </div>
 
-
-    <!-- ==========================================
-         CONTROL DE EFECTOS ESPECIALES
-    =========================================== -->
-
     <div class="card">
-
         <h2>💡🔊 CONTROL DE EFECTOS ESPECIALES</h2>
-
-        <p style="color:#a1a1aa; font-size:13px; margin-bottom:18px;">
-            Estos controles afectan directamente al sistema físico de la ruleta.
-            Solo el administrador controla el sonido y las luces para evitar
-            conflictos entre jugadores.
-        </p>
-
+        <p style="color:#a1a1aa; font-size:13px; margin-bottom:18px;">Estos controles afectan directamente al sistema físico de la ruleta. Solo el administrador controla el sonido y las luces para evitar conflictos entre jugadores.</p>
         <div class="efectos-grid">
-
-            <!-- SONIDO -->
-
             <div class="efecto-box">
-
-                <div class="efecto-titulo">
-                    🔊 SONIDO
-                </div>
-
-                <div class="efecto-descripcion">
-                    Control del buzzer del ESP32
-                </div>
-
-                <div id="estado-sonido"
-                     class="estado-efecto estado-on">
-                    ● ACTIVADO
-                </div>
-
+                <div class="efecto-titulo">🔊 SONIDO</div>
+                <div class="efecto-descripcion">Control del buzzer del ESP32</div>
+                <div id="estado-sonido" class="estado-efecto estado-on">● ACTIVADO</div>
                 <div class="botones-efecto">
-
-                    <button
-                        class="btn-on"
-                        onclick="controlarEfecto('sonido', 1)">
-                        ON
-                    </button>
-
-                    <button
-                        class="btn-off"
-                        onclick="controlarEfecto('sonido', 0)">
-                        OFF
-                    </button>
-
+                    <button class="btn-on" onclick="controlarEfecto('sonido', 1)">ON</button>
+                    <button class="btn-off" onclick="controlarEfecto('sonido', 0)">OFF</button>
                 </div>
-
             </div>
-
-
-            <!-- LUCES -->
-
             <div class="efecto-box">
-
-                <div class="efecto-titulo">
-                    💡 LUCES
-                </div>
-
-                <div class="efecto-descripcion">
-                    Control de las luces LED de la ruleta
-                </div>
-
-                <div id="estado-luces"
-                     class="estado-efecto estado-on">
-                    ● ACTIVADAS
-                </div>
-
+                <div class="efecto-titulo">💡 LUCES</div>
+                <div class="efecto-descripcion">Control de las luces LED de la ruleta</div>
+                <div id="estado-luces" class="estado-efecto estado-on">● ACTIVADAS</div>
                 <div class="botones-efecto">
-
-                    <button
-                        class="btn-on"
-                        onclick="controlarEfecto('luces', 1)">
-                        ON
-                    </button>
-
-                    <button
-                        class="btn-off"
-                        onclick="controlarEfecto('luces', 0)">
-                        OFF
-                    </button>
-
+                    <button class="btn-on" onclick="controlarEfecto('luces', 1)">ON</button>
+                    <button class="btn-off" onclick="controlarEfecto('luces', 0)">OFF</button>
                 </div>
-
             </div>
-
         </div>
-
         <p id="mensaje-efectos"></p>
-
-        <p class="info-central">
-            ⚠️ El control es global: todos los jugadores reciben el mismo efecto.
-        </p>
-
+        <p class="info-central">⚠️ El control es global: todos los jugadores reciben el mismo efecto.</p>
     </div>
 
-
-    <!-- ==========================================
-         CONTROL DE SALA
-    =========================================== -->
-
     <div class="card">
-
         <h2>🎲 CONTROL DE SALA EN VIVO</h2>
-
-        <p style="color:#a1a1aa; font-size:13px; margin-bottom:15px;">
-            Inicia el ciclo automático de rondas
-            (20s de apuestas + giro físico + resultado).
-            Las rondas continuarán automáticamente hasta cerrar la sala.
-        </p>
-
+        <p style="color:#a1a1aa; font-size:13px; margin-bottom:15px;">Inicia el ciclo automático de rondas (20s de apuestas + giro físico + resultado). Las rondas continuarán automáticamente hasta cerrar la sala.</p>
         <div class="btn-sala-container">
-
-            <button
-                onclick="abrirSala()"
-                class="btn-sala">
-                🚀 Iniciar Ciclo Continuo de Sala
-            </button>
-
-            <button
-                onclick="cerrarSala()"
-                class="btn-cerrar-sala">
-                🛑 Cerrar Sala por Completo
-            </button>
-
+            <button onclick="abrirSala()" class="btn-sala">🚀 Iniciar Ciclo Continuo de Sala</button>
+            <button onclick="cerrarSala()" class="btn-cerrar-sala">🛑 Cerrar Sala por Completo</button>
         </div>
-
-        <p id="mensaje-sala"
-           style="margin-top:12px;
-                  font-weight:bold;
-                  font-size:14px;
-                  text-align:center;">
-        </p>
-
+        <p id="mensaje-sala" style="margin-top:12px; font-weight:bold; font-size:14px; text-align:center;"></p>
     </div>
 
-
-    <!-- ==========================================
-         GESTIÓN DE USUARIOS
-    =========================================== -->
-
     <div class="card">
-
         <h2>👥 GESTIÓN DE USUARIOS Y SALDOS</h2>
-
         <table>
-
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Usuario</th>
-                    <th>Saldo Actual</th>
-                    <th>Acción</th>
-                </tr>
+                <tr><th>ID</th><th>Usuario</th><th>Saldo Actual</th><th>Acción</th></tr>
             </thead>
-
             <tbody>
-
                 {% for u in usuarios %}
-
                 <tr>
-
+                    <td><b>{{ u.id }}</b></td>
+                    <td>{{ u.username }}</td>
+                    <td>S/ {{ u.saldo }}</td>
                     <td>
-                        <b>{{ u.id }}</b>
-                    </td>
-
-                    <td>
-                        {{ u.username }}
-                    </td>
-
-                    <td>
-                        S/ {{ u.saldo }}
-                    </td>
-
-                    <td>
-
-                        <form
-                            action="/admin"
-                            method="POST"
-                            style="display:flex; gap:8px;">
-
-                            <input
-                                type="hidden"
-                                name="usuario_id"
-                                value="{{ u.id }}">
-
-                            <input
-                                type="number"
-                                step="0.1"
-                                name="nuevo_saldo"
-                                value="{{ u.saldo }}"
-                                required>
-
-                            <button
-                                type="submit"
-                                class="btn-update">
-                                Guardar
-                            </button>
-
+                        <form action="/admin" method="POST" style="display:flex; gap:8px;">
+                            <input type="hidden" name="usuario_id" value="{{ u.id }}">
+                            <input type="number" step="0.1" name="nuevo_saldo" value="{{ u.saldo }}" required>
+                            <button type="submit" class="btn-update">Guardar</button>
                         </form>
-
                     </td>
-
                 </tr>
-
                 {% endfor %}
-
             </tbody>
-
         </table>
-
     </div>
-
-
-    <!-- ==========================================
-         HISTORIAL GLOBAL
-    =========================================== -->
 
     <div class="card">
-
         <h2>📋 HISTORIAL GLOBAL DE APUESTAS</h2>
-
         <table>
-
             <thead>
-
-                <tr>
-                    <th>Usuario</th>
-                    <th>Monto</th>
-                    <th>Elegido</th>
-                    <th>Ganador</th>
-                    <th>Resultado</th>
-                </tr>
-
+                <tr><th>Usuario</th><th>Monto</th><th>Elegido</th><th>Ganador</th><th>Resultado</th></tr>
             </thead>
-
             <tbody>
-
                 {% for h in historial %}
-
                 <tr>
-
-                    <td>
-                        <b>{{ h.username }}</b>
-                    </td>
-
-                    <td>
-                        S/ {{ h.monto }}
-                    </td>
-
-                    <td>
-                        {{ h.numero_elegido }}
-                        ({{ h.color_elegido }})
-                    </td>
-
-                    <td>
-                        {{ h.numero_ganador }}
-                        ({{ h.color_ganador }})
-                    </td>
-
-                    <td class="{{ 'win' if h.resultado == 'GANASTE' else 'loss' }}">
-                        {{ h.resultado }}
-                    </td>
-
+                    <td><b>{{ h.username }}</b></td>
+                    <td>S/ {{ h.monto }}</td>
+                    <td>{{ h.numero_elegido }} ({{ h.color_elegido }})</td>
+                    <td>{{ h.numero_ganador }} ({{ h.color_ganador }})</td>
+                    <td class="{{ 'win' if h.resultado == 'GANASTE' else 'loss' }}">{{ h.resultado }}</td>
                 </tr>
-
                 {% endfor %}
-
             </tbody>
-
         </table>
-
     </div>
-
 </div>
 
-
 <script>
-
-/* =====================================================
-   CONTROL DE SONIDO Y LUCES
-===================================================== */
-
 function controlarEfecto(tipo, estado) {
-
     const mensaje = document.getElementById('mensaje-efectos');
-
     mensaje.style.color = '#facc15';
     mensaje.innerText = '⏳ Actualizando ' + tipo + '...';
-
     fetch('/admin/control_efectos', {
-
         method: 'POST',
-
-        headers: {
-            'Content-Type': 'application/json'
-        },
-
-        body: JSON.stringify({
-            tipo: tipo,
-            estado: estado
-        })
-
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: tipo, estado: estado })
     })
-
     .then(res => res.json())
-
     .then(data => {
-
         if (data.status === 'ok') {
-
             mensaje.style.color = '#22c55e';
-            mensaje.innerText =
-                '✅ ' +
-                tipo.toUpperCase() +
-                ' actualizado correctamente.';
-
+            mensaje.innerText = '✅ ' + tipo.toUpperCase() + ' actualizado correctamente.';
             actualizarEstadoVisual(tipo, estado);
-
         } else {
-
             mensaje.style.color = '#ef4444';
-
-            mensaje.innerText =
-                '❌ ' + data.message;
+            mensaje.innerText = '❌ ' + data.message;
         }
-
     })
-
     .catch(err => {
-
         console.error(err);
-
         mensaje.style.color = '#ef4444';
-
-        mensaje.innerText =
-            '❌ Error de conexión con el servidor.';
+        mensaje.innerText = '❌ Error de conexión con el servidor.';
     });
 }
-
-
-/* Cambiar visualmente ON / OFF */
 
 function actualizarEstadoVisual(tipo, estado) {
-
-    let elemento;
-
-    if (tipo === 'sonido') {
-
-        elemento = document.getElementById('estado-sonido');
-
-    } else {
-
-        elemento = document.getElementById('estado-luces');
-
-    }
-
+    let elemento = tipo === 'sonido' ? document.getElementById('estado-sonido') : document.getElementById('estado-luces');
     if (estado === 1) {
-
-        elemento.className =
-            'estado-efecto estado-on';
-
-        elemento.innerText =
-            tipo === 'sonido'
-            ? '● ACTIVADO'
-            : '● ACTIVADAS';
-
+        elemento.className = 'estado-efecto estado-on';
+        elemento.innerText = tipo === 'sonido' ? '● ACTIVADO' : '● ACTIVADAS';
     } else {
-
-        elemento.className =
-            'estado-efecto estado-off';
-
-        elemento.innerText =
-            tipo === 'sonido'
-            ? '● DESACTIVADO'
-            : '● DESACTIVADAS';
+        elemento.className = 'estado-efecto estado-off';
+        elemento.innerText = tipo === 'sonido' ? '● DESACTIVADO' : '● DESACTIVADAS';
     }
 }
-
-
-/* =====================================================
-   ABRIR SALA
-===================================================== */
 
 function abrirSala() {
-
-    const msg =
-        document.getElementById('mensaje-sala');
-
+    const msg = document.getElementById('mensaje-sala');
     msg.style.color = '#facc15';
-
-    msg.innerText =
-        '⏳ Iniciando ciclo continuo de la sala...';
-
+    msg.innerText = '⏳ Iniciando ciclo continuo de la sala...';
     fetch('/admin/abrir_sala', {
-
         method: 'POST',
-
-        headers: {
-            'Content-Type': 'application/json'
-        }
-
+        headers: { 'Content-Type': 'application/json' }
     })
-
     .then(res => res.json())
-
     .then(data => {
-
         if (data.status === 'ok') {
-
             msg.style.color = '#22c55e';
-
-            msg.innerText =
-                '✅ ¡Ciclo continuo activo! Las rondas correrán automáticamente.';
-
+            msg.innerText = '✅ ¡Ciclo continuo activo! Las rondas correrán automáticamente.';
         } else {
-
             msg.style.color = '#ef4444';
-
-            msg.innerText =
-                '❌ Error: ' + data.message;
+            msg.innerText = '❌ Error: ' + data.message;
         }
-
     })
-
     .catch(err => {
-
         console.error(err);
-
         msg.style.color = '#ef4444';
-
-        msg.innerText =
-            '❌ Error de conexión con el servidor.';
+        msg.innerText = '❌ Error de conexión con el servidor.';
     });
 }
-
-
-/* =====================================================
-   CERRAR SALA
-===================================================== */
 
 function cerrarSala() {
-
-    const msg =
-        document.getElementById('mensaje-sala');
-
+    const msg = document.getElementById('mensaje-sala');
     msg.style.color = '#facc15';
-
-    msg.innerText =
-        '⏳ Cerrando la sala por completo...';
-
+    msg.innerText = '⏳ Cerrando la sala por completo...';
     fetch('/admin/cerrar_sala', {
-
         method: 'POST',
-
-        headers: {
-            'Content-Type': 'application/json'
-        }
-
+        headers: { 'Content-Type': 'application/json' }
     })
-
     .then(res => res.json())
-
     .then(data => {
-
         if (data.status === 'ok') {
-
             msg.style.color = '#ef4444';
-
-            msg.innerText =
-                '🛑 Sala cerrada exitosamente. El ciclo se ha detenido.';
-
+            msg.innerText = '🛑 Sala cerrada exitosamente. El ciclo se ha detenido.';
         } else {
-
             msg.style.color = '#ef4444';
-
-            msg.innerText =
-                '❌ Error: ' + data.message;
+            msg.innerText = '❌ Error: ' + data.message;
         }
-
     })
-
     .catch(err => {
-
         console.error(err);
-
         msg.style.color = '#ef4444';
-
-        msg.innerText =
-            '❌ Error de conexión con el servidor.';
+        msg.innerText = '❌ Error de conexión con el servidor.';
     });
 }
-
 </script>
-
 </body>
 </html>
