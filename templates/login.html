@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso - MECATROAPUESTAS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            /* Apunta a tu nueva imagen: fondoinicio.png */
+            background-image: linear-gradient(rgba(9, 9, 11, 0.4), rgba(9, 9, 11, 0.6)), url("{{ url_for('static', filename='fondoinicio.png') }}");
+            background-size: cover;
+            background-position: center top; /* Alinea arriba para enfocar el logo */
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: white; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-end; /* En PC baja el cuadro un poco para dejar ver el logo */
+            min-height: 100vh; 
+            padding: 20px; 
+            padding-bottom: 60px;
+            overflow: hidden; /* Evita barras de desplazamiento durante la animación de carga */
+        }
+
+        /* --- PANTALLA DE CARGA (SPLASH SCREEN) --- */
+        #splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #09090b;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        .splash-logo {
+            width: 180px;
+            height: auto;
+            animation: pulse 1.8s infinite ease-in-out;
+            filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.6));
+        }
+
+        .loader-bar {
+            width: 160px;
+            height: 3px;
+            background: #27272a;
+            margin-top: 25px;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loader-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+            box-shadow: 0 0 10px #ef4444;
+            animation: loadProgress 2s forwards ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 30px rgba(239, 68, 68, 0.9)); }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        @keyframes loadProgress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        /* --- CUADRO DE LOGIN --- */
+        .box { 
+            background: rgba(24, 24, 27, 0.88); /* Cristal semi-transparente */
+            backdrop-filter: blur(12px); 
+            padding: 30px 25px; 
+            border-radius: 20px; 
+            border: 1px solid rgba(239, 68, 68, 0.35); 
+            width: 100%; 
+            max-width: 380px; 
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(220, 38, 38, 0.2); 
+            text-align: center; 
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards 2s; /* Aparece tras terminar la carga */
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 { 
+            color: #ef4444; 
+            font-size: 22px; 
+            font-weight: 900; 
+            margin-bottom: 20px; 
+            letter-spacing: 1.5px; 
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            margin-bottom: 12px; 
+            background: rgba(9, 9, 11, 0.85); 
+            border: 1px solid #27272a; 
+            border-radius: 10px; 
+            color: white; 
+            font-size: 14px; 
+            outline: none; 
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); 
+            border: none; 
+            border-radius: 10px; 
+            color: white; 
+            font-size: 15px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            margin-top: 8px; 
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .toggle-btn { 
+            background: none; 
+            border: none; 
+            color: #a1a1aa; 
+            font-size: 13px; 
+            margin-top: 16px; 
+            cursor: pointer; 
+            text-decoration: underline; 
+            box-shadow: none;
+            width: auto;
+            padding: 0;
+        }
+
+        .toggle-btn:hover { color: #f8fafc; }
+
+        /* Ajustes Responsivos para Celular 📱 */
+        @media (max-width: 600px) {
+            body {
+                align-items: flex-end; /* En celulares mantiene el formulario abajo */
+                padding-bottom: 30px;
+                background-position: top center; /* Muestra perfecto el logo arriba */
+            }
+            .box {
+                padding: 25px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Carga Inicial (Splash Screen) -->
+    <div id="splash">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="splash-logo">
+        <div class="loader-bar">
+            <div class="loader-progress"></div>
+        </div>
+    </div>
+
+    <!-- Formulario de Login -->
+    <div class="box">
+        <h2>INICIAR SESIÓN</h2>
+        <input type="text" id="user" placeholder="Nombre de usuario">
+        <input type="password" id="pass" placeholder="Contraseña">
+        
+        <button id="btnSubmit" onclick="ejecutarAccion()">INGRESAR</button>
+        <br>
+        <button class="toggle-btn" id="btnToggle" onclick="toggleModo()">¿No tienes cuenta? Regístrate aquí</button>
+    </div>
+
+    <script>
+        // Oculta el Splash Screen a los 2.2 segundos de cargar la página
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash');
+                splash.style.opacity = '0';
+                splash.style.visibility = 'hidden';
+                document.body.style.overflow = 'auto'; // Restablece el scroll normal
+            }, 2200);
+        });
+
+        let esRegistro = false;
+
+        function toggleModo() {
+            esRegistro = !esRegistro;
+            document.getElementById("btnSubmit").innerText = esRegistro ? "REGISTRARSE Y OBTENER ID" : "INGRESAR";
+            document.getElementById("btnToggle").innerText = esRegistro ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate aquí";
+        }
+
+        async function ejecutarAccion() {
+            const u = document.getElementById("user").value;
+            const p = document.getElementById("pass").value;
+
+            if(!u || !p) return alert("Por favor complete todos los campos.");
+
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: u, password: p, action: esRegistro ? 'register' : 'login' })
+            });
+
+            const data = await res.json();
+            if(data.status === 'ok') {
+                if(esRegistro) alert("¡Cuenta creada con éxito! Tu ID asignado es: " + data.user_id);
+                window.location.href = '/';
+            } else {
+                alert(data.message);
+            }
+        }
+    </script>
+</body>
+</html>

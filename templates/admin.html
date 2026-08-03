@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - MECATROAPUESTAS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { 
+            background-image: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)), url("{{ url_for('static', filename='fondoindex.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #f8fafc; 
+            padding: 20px; 
+            min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header-admin { display: flex; justify-content: space-between; align-items: center; background: rgba(24, 24, 27, 0.85); padding: 20px; border-radius: 14px; border: 1px solid #27272a; margin-bottom: 20px; }
+        .brand-title { font-size: 22px; font-weight: 900; color: #22c55e; letter-spacing: 1.5px; }
+        .back-btn { background: #27272a; color: white; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; border: 1px solid #3f3f46; }
+        .back-btn:hover { background: #3f3f46; }
+
+        .card { background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid #27272a; padding: 22px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        h2 { font-size: 16px; color: #a1a1aa; margin-bottom: 15px; font-weight: 800; letter-spacing: 1px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #27272a; }
+        th { color: #a1a1aa; font-weight: 600; background: rgba(9, 9, 11, 0.5); }
+        
+        input[type="number"] { width: 100px; padding: 8px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 6px; color: white; font-size: 13px; }
+        .btn-update { background: #22c55e; color: black; border: none; padding: 8px 14px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn-update:hover { background: #16a34a; color: white; }
+
+        .win { color: #22c55e; font-weight: bold; }
+        .loss { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-admin">
+            <div class="brand-title">⚙️ PANEL DE ADMINISTRACIÓN</div>
+            <a href="/" class="back-btn">⬅ Volver al Juego</a>
+        </div>
+
+        <!-- Gestión de Usuarios y Saldos -->
+        <div class="card">
+            <h2>👥 GESTIÓN DE USUARIOS Y SALDOS</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Saldo Actual</th>
+                        <th>Acción (Actualizar Saldo)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr>
+                        <td><b>{{ u.id }}</b></td>
+                        <td>{{ u.username }}</td>
+                        <td>S/ {{ u.saldo }}</td>
+                        <td>
+                            <form action="/admin" method="POST" style="display: flex; gap: 8px;">
+                                <input type="hidden" name="usuario_id" value="{{ u.id }}">
+                                <input type="number" step="0.1" name="nuevo_saldo" value="{{ u.saldo }}" required>
+                                <button type="submit" class="btn-update">Guardar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Historial Global del Sistema -->
+        <div class="card">
+            <h2>📋 HISTORIAL GLOBAL DE APUESTAS (Últimos registros)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Monto</th>
+                        <th>Elegido</th>
+                        <th>Ganador</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in historial %}
+                    <tr>
+                        <td><b>{{ h.username }}</b></td>
+                        <td>S/ {{ h.monto }}</td>
+                        <td>{{ h.numero_elegido }} ({{ h.color_elegido }})</td>
+                        <td>{{ h.numero_ganador }} ({{ h.color_ganador }})</td>
+                        <td class="{{ 'win' if h.resultado == 'GANASTE' else 'loss' }}">{{ h.resultado }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
