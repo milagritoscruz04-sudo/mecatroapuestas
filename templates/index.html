@@ -108,9 +108,9 @@ body {
         </div>
 
         <div class="menu-items">
-            <button class="menu-btn" onclick="openHistorial()">📋Mis apuestas (Historial)</button>
-            {% if usuario == 'admin' %}
-            <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e;">Panel Admin Creadores</a>
+            <button class="menu-btn" onclick="openHistorial()">📋 Mis apuestas (Historial)</button>
+            {% if usuario in ['Capi admin', 'El diavlo'] %}
+            <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e; display:block;">Panel Admin Creadores</a>
             {% endif %}
         </div>
 
@@ -194,7 +194,7 @@ body {
                 <h3 style="color: white;">📋 Historial Personal</h3>
                 <button class="close-btn" onclick="closeHistorial()">✕</button>
             </div>
-            <table id="historial">
+            <table>
                 <thead>
                     <tr>
                         <th>Elegido</th>
@@ -204,7 +204,7 @@ body {
                         <th>Resultado</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="historial-body">
                     {% for row in historial %}
                     <tr>
                         <td>{{ row.numero_elegido }}</td>
@@ -265,6 +265,23 @@ body {
             }
         }
 
+        function agregarFilaHistorial(elegido, colorElegido, monto, numGanador, colorGanador, resultado) {
+            const tbody = document.getElementById("historial-body");
+            const esGanador = resultado === 'GANASTE';
+            const claseResultado = esGanador ? 'win' : 'loss';
+            
+            const nuevaFila = document.createElement('tr');
+            nuevaFila.innerHTML = `
+                <td>${elegido}</td>
+                <td>${colorElegido}</td>
+                <td>S/ ${monto}</td>
+                <td>${numGanador} (${colorGanador})</td>
+                <td class="${claseResultado}">${resultado}</td>
+            `;
+            
+            tbody.insertBefore(nuevaFila, tbody.firstChild);
+        }
+
         async function jugarIndividual() {
             const apuesta = parseFloat(document.getElementById("apuesta").value);
             const numero = parseInt(document.getElementById("numero").value);
@@ -288,6 +305,9 @@ body {
                 const resultClass = data.resultado === 'GANASTE' ? 'win' : 'loss';
                 document.getElementById("resultado").innerHTML = 
                     `Salió: <b>${data.numero_ganador} (${data.color_ganador})</b> | <span class="${resultClass}">¡${data.resultado}!</span>`;
+                
+                agregarFilaHistorial(numero, color, apuesta, data.numero_ganador, data.color_ganador, data.resultado);
+
             } else {
                 alert(data.message);
                 document.getElementById("resultado").innerText = "Error en la apuesta.";
