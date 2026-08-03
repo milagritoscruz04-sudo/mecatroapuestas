@@ -121,6 +121,10 @@ def index():
     historial = cursor.execute('SELECT * FROM historial WHERE usuario_id = ? ORDER BY id DESC LIMIT 15', (session['user_id'],)).fetchall()
     conn.close()
     
+    if not user:
+        session.clear()
+        return redirect(url_for('login_view'))
+    
     return render_template('index.html', 
                            usuario=user['username'], 
                            user_id=user['id'], 
@@ -150,13 +154,14 @@ def login_view():
         nuevo_id = generar_siguiente_id()
         cursor.execute('INSERT INTO usuarios VALUES (?, ?, ?, ?)', (nuevo_id, username, password, 200.0))
         conn.commit()
-        user = cursor.execute('SELECT * FROM usuarios WHERE id = ?', (nuevo_id,)).fetchone()
+        conn.close()
+        return jsonify({'status': 'ok', 'message': 'Usuario registrado con éxito'})
     else:
         user = cursor.execute('SELECT * FROM usuarios WHERE username = ? AND password = ?', (username, password)).fetchone()
+        conn.close()
         
-    conn.close()
-    
     if user:
+        session.clear()  # Limpia cualquier sesión residual anterior
         session['user_id'] = user['id']
         session['username'] = user['username']
         return jsonify({'status': 'ok', 'user_id': user['id']})
@@ -212,9 +217,9 @@ def apostar_individual():
     
     user = cursor.execute('SELECT * FROM usuarios WHERE id = ?', (session['user_id'],)).fetchone()
     
-    if monto > user['saldo']:
+    if not user or monto > user['saldo']:
         conn.close()
-        return jsonify({'status': 'error', 'message': 'Saldo insuficiente'}), 400
+        return jsonify({'status': 'error', 'message': 'Saldo insuficiente o usuario inválido'}), 400
 
     apuesta_temp = [{'numero': numero_elegido, 'monto': monto}]
     numero_ganador = calcular_ganador_casa(apuesta_temp)
@@ -260,7 +265,7 @@ def registrar_apuesta_sala():
     cursor = conn.cursor()
     user = cursor.execute('SELECT * FROM usuarios WHERE id = ?', (session['user_id'],)).fetchone()
     
-    if monto > user['saldo']:
+    if not user or monto > user['saldo']:
         conn.close()
         return jsonify({'status': 'error', 'message': 'Saldo insuficiente'}), 400
     
@@ -301,14 +306,15 @@ def girar_sala():
     for ap in APUESTAS_RONDA:
         gano = (ap['numero'] == numero_ganador) or (ap['color'].lower() == color_ganador.lower())
         user = cursor.execute('SELECT saldo FROM usuarios WHERE id = ?', (ap['user_id'],)).fetchone()
-        nuevo_saldo = user['saldo'] + ap['monto'] if gano else user['saldo'] - ap['monto']
-        resultado_str = "GANASTE" if gano else "PERDISTE"
-        
-        cursor.execute('UPDATE usuarios SET saldo = ? WHERE id = ?', (nuevo_saldo, ap['user_id']))
-        cursor.execute('''
-            INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str))
+        if user:
+            nuevo_saldo = user['saldo'] + ap['monto'] if gano else user['saldo'] - ap['monto']
+            resultado_str = "GANASTE" if gano else "PERDISTE"
+            
+            cursor.execute('UPDATE usuarios SET saldo = ? WHERE id = ?', (nuevo_saldo, ap['user_id']))
+            cursor.execute('''
+                INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str))
 
     conn.commit()
     conn.close()
