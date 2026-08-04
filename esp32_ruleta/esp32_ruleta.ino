@@ -4,21 +4,25 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+// Configuración de la pantalla LCD I2C (Dirección 0x27, 16 columnas, 2 filas)
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
+// Pines del Driver ULN2003 para el motor paso a paso
 #define IN1 19
 #define IN2 18
 #define IN3 5
 #define IN4 17
 
+// Pin del Buzzer integrado
 const int PIN_BUZZER = 23;
 
 WebServer server(80);
 
-// XIOMAREX CAMBIAS ESTO POR LA RED A LA QUE TE VAS A CONECTAR PES
+// CAMBIA ESTO POR TUS DATOS DE RED WI-FI
 const char* ssid = "TU_WIFI";
 const char* password = "TU_WIFI_PASSWORD";
 
+// Secuencia de pasos para el motor 28BYJ-48
 const int pasoSecuencia[8][4] = {
   {1, 0, 0, 0},
   {1, 1, 0, 0},
@@ -30,8 +34,14 @@ const int pasoSecuencia[8][4] = {
   {1, 0, 0, 1}
 };
 
-int pasoActual = 0;
-int contadorRondasUsuario = 0; 
+int pasoActualMotor = 0;
+
+// ORDEN EXACTO DE LOS NÚMEROS EN TU RULETA FÍSICA (En sentido horario según tu imagen)
+int ordenRuleta[24] = {0, 5, 10, 19, 8, 11, 22, 17, 2, 3, 12, 21, 20, 9, 14, 23, 18, 1, 4, 15, 6, 7, 16, 13};
+int indicePosicionActual = 0; // Posición inicial en el array (empieza en el 0)
+
+const int PASOS_TOTALES_VUELTA = 4096;
+const float PASOS_POR_CASILLA = (float)PASOS_TOTALES_VUELTA / 24.0; // ~170.66 pasos por número
 
 void mostrarMensajeLCD(String linea1, String linea2) {
   lcd.clear();
@@ -41,18 +51,14 @@ void mostrarMensajeLCD(String linea1, String linea2) {
   lcd.print(linea2);
 }
 
-void darPasosConSonido(int cantidadPasos, int retardoMicrosegundos, int frecuenciaSonido) {
+void darPasos(int cantidadPasos, int retardoMicrosegundos) {
   for (int i = 0; i < cantidadPasos; i++) {
-    pasoActual = (pasoActual + 1) % 8;
-    digitalWrite(IN1, pasoSecuencia[pasoActual][0]);
-    digitalWrite(IN2, pasoSecuencia[pasoActual][1]);
-    digitalWrite(IN3, pasoSecuencia[pasoActual][2]);
-    digitalWrite(IN4, pasoSecuencia[pasoActual][3]);
+    pasoActualMotor = (pasoActualMotor + 1) % 8;
+    digitalWrite(IN1, pasoSecuencia[pasoActualMotor][0]);
+    digitalWrite(IN2, pasoSecuencia[pasoActualMotor][1]);
+    digitalWrite(IN3, pasoSecuencia[pasoActualMotor][2]);
+    digitalWrite(IN4, pasoSecuencia[pasoActualMotor][3]);
     delayMicroseconds(retardoMicrosegundos);
-
-    if (i % frecuenciaSonido == 0) {
-      tone(PIN_BUZZER, 1200, 5); 
-    }
   }
 }
 
@@ -71,64 +77,56 @@ void sonidoGanador() {
   noTone(PIN_BUZZER);
 }
 
-void sonidoPerdedor() {
-  tone(PIN_BUZZER, 400, 200); delay(230);
-  tone(PIN_BUZZER, 350, 200); delay(230);
-  tone(PIN_BUZZER, 300, 400); delay(450);
-  noTone(PIN_BUZZER);
-}
-
-String obtenerColor(int numero) {
-  if (numero == 0) return "Verde";
-  else if (numero % 2 == 0) return "Rojo";
-  else return "Negro";
+// Función para buscar en qué índice del array está el número ganador que manda Python
+int buscarIndiceNumero(int numeroBuscado) {
+  for (int i = 0; i < 24; i++) {
+    if (ordenRuleta[i] == numeroBuscado) {
+      return i;
+    }
+  }
+  return 0;
 }
 
 void handleGirar() {
-  if (server.hasArg("ganador") || true) {
+  if (server.hasArg("ganador")) {
+    int numeroGanador = server.arg("ganador").toInt();
     
-    mostrarMensajeLCD("  GIRANDO...", "  ¡SUERTE!");
+    // 1. Mostrar en LCD que está girando
+    mostrarMensajeLCD("  GIRANDO...", " NUM: " + String(numeroGanador));
+    
+    // Tono de giro inicial
+    tone(PIN_BUZZER, 800, 100);
 
-    int PASOS_UNA_VUELTA = 4096;
+    // 2. Calcular cuántas casillas hay que moverse desde la posición actual hasta el ganador
+    int indiceDestino = buscarIndiceNumero(numeroGanador);
+    int distanciaCasillas = (indiceDestino - indicePosicionActual + 24) % 24;
+    
+    // Hacemos que dé al menos 3 vueltas completas de emoción + los pasos exactos hasta la casilla destino
+    int pasosTotalesGiro = (PASOS_TOTALES_VUELTA * 3) + (int)(distanciaCasillas * PASOS_POR_CASILLA);
 
-    // Giro de la ruleta con sonido
-    darPasosConSonido(PASOS_UNA_VUELTA * 2, 1400, 45);
-    int difFrecuencia = 60;
-    for (int retardo = 1600; retardo <= 3000; retardo += 350) {
-      darPasosConSonido(PASOS_UNA_VUELTA / 4, retardo, difFrecuencia);
-      difFrecuencia += 25;
-    }
-    for (int retardo = 3400; retardo <= 5500; retardo += 500) {
-      darPasosConSonido(PASOS_UNA_VUELTA / 8, retardo, difFrecuencia);
-      difFrecuencia += 40;
-    }
+    // 3. Ejecutar el movimiento desacelerando progresivamente (efecto mecánico real)
+    // Vueltas rápidas
+    darPasos(PASOS_TOTALES_VUELTA * 3, 1200);
+    
+    // Frenado suave por tramos
+    darPasos((int)(PASOS_POR_CASILLA * distanciaCasillas * 0.6), 1800);
+    tone(PIN_BUZZER, 1000, 40);
+    
+    darPasos((int)(PASOS_POR_CASILLA * distanciaCasillas * 0.4), 2800);
+    tone(PIN_BUZZER, 1200, 60);
+
+    // Actualizar la posición actual de la ruleta
+    indicePosicionActual = indiceDestino;
     apagarMotor();
 
-    contadorRondasUsuario++;
-    int numGanador;
+    // 4. Mostrar el resultado final en la LCD y activar sonido de victoria
+    mostrarMensajeLCD("GANADOR: " + String(numeroGanador), "¡EXCELENTE!");
+    sonidoGanador();
 
-    bool forzarVictoria = false;
-    if (contadorRondasUsuario <= 3) {
-      if (random(100) < 60) forzarVictoria = true; 
-    } else {
-      if (random(100) < 40) forzarVictoria = true; 
-    }
-
-    numGanador = random(0, 24);
-    String colorGanador = obtenerColor(numGanador);
-
-    if (forzarVictoria) {
-      mostrarMensajeLCD("NUM: " + String(numGanador), "FELICIDADES GAN!");
-      sonidoGanador();
-    } else {
-      mostrarMensajeLCD("NUM: " + String(numGanador), "INTENTALO DE NUEVO");
-      sonidoPerdedor();
-    }
-
-    String jsonRespuesta = "{\"status\":\"ok\", \"ganador\": " + String(numGanador) + "}";
-    server.send(200, "application/json", jsonRespuesta);
+    // Responder a Python que el giro terminó correctamente
+    server.send(200, "application/json", "{\"status\":\"ok\", \"ganador\": " + String(numeroGanador) + "}");
   } else {
-    server.send(400, "application/json", "{\"status\":\"error\"}");
+    server.send(400, "application/json", "{\"status\":\"error\", \"mensaje\":\"Falta argumento ganador\"}");
   }
 }
 
@@ -146,7 +144,7 @@ void setup() {
   lcd.backlight();
   mostrarMensajeLCD(" CONECTANDO...", " WIFI...");
 
-  // Conectarse a la red Wi-Fi del router
+  // Conexión Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -159,10 +157,10 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   mostrarMensajeLCD(" IP ASIGNADA:", WiFi.localIP().toString());
-  delay(2000);
+  delay(2500);
   mostrarMensajeLCD("MECATROAPUESTAS", "LISTO PARA JUGAR");
 
-  // Configurar la ruta HTTP que consultará Python
+  // Endpoint web que Python consumirá automáticamente al finalizar cada ronda
   server.on("/girar", handleGirar);
   server.begin();
 }
