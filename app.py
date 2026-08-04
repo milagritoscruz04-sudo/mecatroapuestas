@@ -242,10 +242,20 @@ def bucle_ciclo_continuo():
                 break
 
             # FASE 2: GIRANDO RULETA (5 segundos)
+            # Calculamos número ganador y enviamos señal al ESP32 al iniciar el giro
+            numero_ganador = 0
             try:
                 conn = get_db_connection()
                 cursor = conn.cursor()
                 try:
+                    cursor.execute("SELECT * FROM apuestas_ronda WHERE numero_ronda = %s", (ronda_actual,))
+                    apuestas_actuales = cursor.fetchall()
+                    numero_ganador = obtener_resultado_ruleta(apuestas_actuales)
+
+                    cursor.execute("SELECT sonido, luces FROM sala_live WHERE id = 1")
+                    efectos = cursor.fetchone()
+                    enviar_a_esp32_async(numero_ganador, 1 if efectos['sonido'] else 0, 1 if efectos['luces'] else 0)
+
                     fin_girando = datetime.utcnow() + timedelta(seconds=DURACION_GIRANDO)
                     cursor.execute('''
                         UPDATE sala_live SET fase = 'girando', fase_termina_en = %s, heartbeat = NOW() WHERE id = 1
@@ -274,9 +284,7 @@ def bucle_ciclo_continuo():
                     cursor.execute("SELECT * FROM apuestas_ronda WHERE numero_ronda = %s", (ronda_actual,))
                     apuestas_actuales = cursor.fetchall()
 
-                    numero_ganador = obtener_resultado_ruleta(apuestas_actuales)
                     color_ganador = obtener_color(numero_ganador)
-
                     ganadores_list = []
                     total_repartido = 0.0
 
@@ -293,7 +301,6 @@ def bucle_ciclo_continuo():
 
                             cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['usuario_id']))
                             
-                            # Guardar en Historial correctamente
                             cursor.execute('''
                                 INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado, monto_ganado)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -319,10 +326,6 @@ def bucle_ciclo_continuo():
                         WHERE id = 1
                     ''', (ronda_actual, numero_ganador, color_ganador, total_repartido, json.dumps(ganadores_list), fin_resultado))
                     conn.commit()
-
-                    cursor.execute("SELECT sonido, luces FROM sala_live WHERE id = 1")
-                    efectos = cursor.fetchone()
-                    enviar_a_esp32_async(numero_ganador, 1 if efectos['sonido'] else 0, 1 if efectos['luces'] else 0)
                 finally:
                     cursor.close()
                     conn.close()
@@ -578,6 +581,13 @@ def estado_sala():
             cursor.execute("SELECT username, monto, numero, color FROM apuestas_ronda WHERE numero_ronda = %s", (sala['numero_ronda'],))
             apuestas = cursor.fetchall()
 
+        ultimo_ganadores = []
+        if sala and sala['ultimo_ganadores']:
+            try:
+                ultimo_ganadores = json.loads(sala['ultimo_ganadores'])
+            except:
+                ultimo_ganadores = []
+
         return jsonify({
             "sistema_activo": sala['sistema_activo'] if sala else False,
             "fase": sala['fase'] if sala else 'apuestas',
@@ -585,8 +595,13 @@ def estado_sala():
             "apuestas": apuestas,
             "numero_ronda": sala['numero_ronda'] if sala else 0,
             "saldo_usuario": saldo_actual,
-            "ultimo_numero_ganador": sala['ultimo_numero_ganador'] if sala else None,
-            "ultimo_color_ganador": sala['ultimo_color_ganador'] if sala else None
+            "ultimo_resultado": {
+                "numero_ronda": sala['ultima_ronda_resuelta'] if sala else 0,
+                "numero_ganador": sala['ultimo_numero_ganador'] if sala else None,
+                "color_ganador": sala['ultimo_color_ganador'] if sala else None,
+                "total_repartido": sala['ultimo_total_repartido'] if sala else 0,
+                "ganadores": ultimo_ganadores
+            } if sala and sala['ultima_ronda_resuelta'] > 0 else None
         })
     finally:
         cursor.close()

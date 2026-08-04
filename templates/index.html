@@ -49,7 +49,7 @@
 
         .section-title { font-size: 12px; color: #a1a1aa; margin: 15px 0 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
 
-        /* TABLERO: 0 arriba (ancho completo) + 3 COLUMNAS x 8 FILAS - COLORES CORREGIDOS */
+        /* TABLERO: 0 arriba (ancho completo) + 3 COLUMNAS x 8 FILAS */
         .ruleta-grid { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -102,23 +102,6 @@
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #27272a; padding-bottom: 10px; }
         .close-btn { background: none; border: none; color: #a1a1aa; font-size: 22px; cursor: pointer; }
 
-        /* Winner Popup - MEJORADO CON ANIMACIÓN */
-        .winner-display { text-align: center; padding: 15px 0; }
-        .winner-number { 
-            font-size: 85px; 
-            font-weight: 900; 
-            line-height: 1; 
-            margin: 10px 0;
-        }
-        .winner-color-badge {
-            display: inline-block;
-            padding: 8px 30px;
-            border-radius: 30px;
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: 2px;
-        }
-
         /* NOTIFICACIONES TOAST */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: #18181b; color: white; padding: 14px 20px; border-radius: 10px; border-left: 5px solid #ef4444; box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 14px; font-weight: 600; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; }
@@ -130,22 +113,10 @@
         th { color: #a1a1aa; }
         .win { color: #22c55e; font-weight: bold; }
         .loss { color: #ef4444; font-weight: bold; }
-
-        /* Barra de progreso animada */
-        .progress-bar-container { width: 100%; height: 6px; background: #27272a; border-radius: 4px; margin-top: 20px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: #ef4444; width: 100%; transition: width 0.05s linear; }
-        
-        .winners-table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 13px; }
-        .winners-table th, .winners-table td { padding: 8px; text-align: center; border-bottom: 1px solid #27272a; }
-        .winners-table th { color: #f59e0b; }
-        .winners-table tr:last-child td { border-bottom: none; }
-
-        .no-ganadores { color: #a1a1aa; text-align: center; padding: 15px; }
     </style>
 </head>
 <body>
 
-    <!-- Contenedor de Toasts Flotantes -->
     <div id="toast-container"></div>
 
     <div class="header">
@@ -164,8 +135,8 @@
         </div>
 
         <div class="menu-items">
-            <button class="menu-btn" onclick="openHistorial()">📋 Mis Apuestas</button>
-            <button class="menu-btn" onclick="openPasswordModal()">🔒 Cambiar Contraseña</button>
+            <button class="menu-btn" onclick="openHistorial()">Mis Apuestas</button>
+            <button class="menu-btn" onclick="openPasswordModal()">Cambiar Contraseña</button>
             {% if es_admin %}
             <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e; display:block;">Panel Admin Creadores</a>
             {% endif %}
@@ -190,7 +161,7 @@
             <div class="monto">S/ <span id="saldo">{{ saldo }}</span></div>
         </div>
 
-        <!-- Tablero Matriz 6x4 con colores CORREGIDOS -->
+        <!-- Tablero Matriz -->
         <div class="section-title">1. ELIGE UN NÚMERO DEL TABLERO (0 - 23)</div>
         <div class="ruleta-grid" id="tablero_grid">
             <!-- Se autorenderiza por JavaScript -->
@@ -225,7 +196,7 @@
     <div class="modal" id="modalHistorial">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="color: white;">📋 Historial Personal</h3>
+                <h3 style="color: white;">Historial Personal</h3>
                 <button class="close-btn" onclick="closeHistorial()">✕</button>
             </div>
             <div style="max-height: 400px; overflow-y: auto;">
@@ -264,7 +235,7 @@
     <div class="modal" id="modalPassword">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="color: white;">🔒 Cambiar Contraseña</h3>
+                <h3 style="color: white;">Cambiar Contraseña</h3>
                 <button class="close-btn" onclick="closePasswordModal()">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -275,39 +246,12 @@
         </div>
     </div>
 
-    <!-- Modal Anuncio Ganador - MEJORADO -->
-    <div class="modal" id="modalGanador">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color: #f59e0b; letter-spacing: 1px;">🎉 RESULTADO DE RONDA 🎉</h2>
-            <div class="winner-display">
-                <div class="winner-number" id="win_num">0</div>
-                <div id="win_color_badge" class="winner-color-badge">VERDE</div>
-            </div>
-            <div id="win_resumen" style="font-size: 14px; color: #cbd5e1; margin: 10px 0;"></div>
-            
-            <div style="max-height: 150px; overflow-y: auto; margin-top: 10px;">
-                <table class="winners-table" id="tabla_ganadores">
-                    <!-- Se llena por JavaScript -->
-                </table>
-            </div>
-
-            <!-- Barra de progreso de 5 segundos -->
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progress_bar"></div>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // --- CONFIGURACIÓN DE COLORES CORREGIDA (igual que el backend) ---
-        // Verde: 0 | Rojo: pares (2,4,6...22) | Negro: impares (1,3,5...23)
         const NUMEROS_ROJOS = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
         
         let numeroSeleccionado = 0;
         let colorSeleccionado = 'Verde';
-        let ultimaRondaProcesada = -1;
 
-        // Renderizador del Tablero: 0 arriba (ancho completo) + 1-23 en 3 columnas
         function construirTablero() {
             const grid = document.getElementById("tablero_grid");
             grid.innerHTML = `
@@ -328,7 +272,6 @@
         }
         construirTablero();
 
-        // Sistema de Notificaciones Toasts
         function showToast(mensaje, tipo = 'info') {
             const container = document.getElementById("toast-container");
             const toast = document.createElement("div");
@@ -354,10 +297,6 @@
 
         function openPasswordModal() { toggleMenu(); document.getElementById("modalPassword").style.display = "flex"; }
         function closePasswordModal() { document.getElementById("modalPassword").style.display = "none"; }
-
-        function closeGanadorModal() { 
-            document.getElementById("modalGanador").style.display = "none"; 
-        }
 
         function seleccionarNumero(num, color, element) {
             numeroSeleccionado = num;
@@ -438,24 +377,36 @@
                     document.getElementById("saldo").innerText = state.saldo_usuario;
                 }
 
+                // Actualización limpia de estados en el banner
                 if (!state.sistema_activo) {
                     dot.className = "dot closed";
                     txt.innerText = "SALA CERRADA";
                     timer.innerText = "--";
                     btn.disabled = true;
-                } else if (state.activa) {
+                } else if (state.fase === 'apuestas') {
                     dot.className = "dot";
-                    txt.innerText = `APUESTAS ABIERTAS (#${state.numero_ronda})`;
+                    txt.innerText = `SALA ABIERTA (#${state.numero_ronda})`;
                     timer.innerText = `${state.tiempo_restante}s`;
                     btn.disabled = false;
-                } else {
+                } else if (state.fase === 'girando') {
                     dot.className = "dot closed";
-                    txt.innerText = "GIRANDO RULETA...";
-                    timer.innerText = "0s";
+                    txt.innerText = "🌀 GIRANDO RULETA...";
+                    timer.innerText = `${state.tiempo_restante}s`;
+                    btn.disabled = true;
+                } else if (state.fase === 'resultado') {
+                    dot.className = "dot closed";
+                    if (state.ultimo_resultado) {
+                        const numWin = state.ultimo_resultado.numero_ganador;
+                        const colWin = state.ultimo_resultado.color_ganador || 'Verde';
+                        txt.innerText = `🎉 GANADOR: N° ${numWin} (${colWin.toUpperCase()})`;
+                    } else {
+                        txt.innerText = "NÚMERO GANADOR";
+                    }
+                    timer.innerText = `${state.tiempo_restante}s`;
                     btn.disabled = true;
                 }
 
-                // Lista apuestas en vivo
+                // Lista de apuestas en vivo
                 const contenedorApuestas = document.getElementById("lista_apuestas");
                 if (!state.apuestas || state.apuestas.length === 0) {
                     contenedorApuestas.innerHTML = '<i style="color: #a1a1aa; font-size: 13px;">No hay apuestas registradas en esta ronda.</i>';
@@ -468,90 +419,14 @@
                     `).join('');
                 }
 
-                // Popup Ganador - Solo si hay un nuevo resultado
-                if (state.ultimo_resultado && state.ultimo_resultado.numero_ronda !== ultimaRondaProcesada) {
-                    ultimaRondaProcesada = state.ultimo_resultado.numero_ronda;
-                    
-                    const numWin = state.ultimo_resultado.numero_ganador;
-                    const colWin = state.ultimo_resultado.color_ganador;
-                    
-                    // Mostrar número ganador
-                    document.getElementById("win_num").innerText = numWin;
-                    
-                    // Mostrar color con badge
-                    const badge = document.getElementById("win_color_badge");
-                    badge.innerText = colWin.toUpperCase();
-                    if (colWin === 'Verde') {
-                        badge.style.backgroundColor = '#15803d';
-                        badge.style.color = '#86efac';
-                    } else if (colWin === 'Rojo') {
-                        badge.style.backgroundColor = '#b91c1c';
-                        badge.style.color = '#fca5a5';
-                    } else {
-                        badge.style.backgroundColor = '#18181b';
-                        badge.style.color = '#e4e4e7';
-                        badge.style.border = '1px solid #3f3f46';
-                    }
-
-                    // Resumen
-                    const totalG = state.ultimo_resultado.ganadores.length;
-                    const totalMonto = state.ultimo_resultado.total_repartido;
-                    document.getElementById("win_resumen").innerHTML = 
-                        `<b>${totalG} ganadores</b> obtuvieron <b style="color:#22c55e;">S/ ${totalMonto}</b> en total.`;
-
-                    // Tabla de ganadores
-                    const tabla = document.getElementById("tabla_ganadores");
-                    if (state.ultimo_resultado.ganadores.length > 0) {
-                        tabla.innerHTML = `
-                            <tr>
-                                <th>👤 Usuario</th>
-                                <th>🏆 Premio</th>
-                            </tr>
-                            ${state.ultimo_resultado.ganadores.map(g => `
-                                <tr>
-                                    <td>${g.username}</td>
-                                    <td style="color:#22c55e; font-weight:bold;">S/ ${g.monto_ganado}</td>
-                                </tr>
-                            `).join('')}
-                        `;
-                    } else {
-                        tabla.innerHTML = `<tr><td colspan="2" class="no-ganadores">😢 Nadie ganó en esta ronda</td></tr>`;
-                    }
-
-                    // Mostrar modal con animación
-                    const modal = document.getElementById("modalGanador");
-                    modal.style.display = "flex";
-
-                    // Animación de la barra de progreso
-                    const progressBar = document.getElementById("progress_bar");
-                    let timeLeft = 5000;
-                    progressBar.style.width = "100%";
-                    
-                    if (window.progressInterval) clearInterval(window.progressInterval);
-                    if (window.popupTimeout) clearTimeout(window.popupTimeout);
-
-                    window.progressInterval = setInterval(() => {
-                        timeLeft -= 50;
-                        const percentage = Math.max(0, (timeLeft / 5000) * 100);
-                        progressBar.style.width = `${percentage}%`;
-                        if (timeLeft <= 0) clearInterval(window.progressInterval);
-                    }, 50);
-
-                    window.popupTimeout = setTimeout(() => {
-                        closeGanadorModal();
-                    }, 5000);
-                }
-
             } catch (err) {
                 console.error("Error al actualizar estado:", err);
             }
         }
 
-        // Ejecutar primero y luego cada segundo
         actualizarEstado();
         setInterval(actualizarEstado, 1000);
 
-        // Cerrar modales al hacer clic fuera
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
