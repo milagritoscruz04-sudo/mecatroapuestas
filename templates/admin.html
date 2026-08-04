@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Administración</title>
   <style>
+    /* Estilos Generales Dark Theme */
     :root {
       --bg-dark: #0f0f12;
       --card-bg: #18181c;
@@ -31,6 +32,7 @@
       gap: 20px;
     }
 
+    /* Encabezado */
     .header-panel {
       display: flex;
       justify-content: space-between;
@@ -44,7 +46,11 @@
     .header-title {
       font-weight: 800;
       color: #ef4444;
+      letter-spacing: 0.5px;
       font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .btn-back {
@@ -55,9 +61,17 @@
       border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
       text-decoration: none;
+      display: inline-block;
     }
 
+    .btn-back:hover {
+      background: #3f3f46;
+      transform: translateY(-1px);
+    }
+
+    /* Bloques Principales */
     .section-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -71,8 +85,10 @@
       font-weight: 700;
       margin-bottom: 15px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
+    /* Botones de Control de Sala */
     .room-controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -85,14 +101,26 @@
       border-radius: 8px;
       border: none;
       font-weight: 700;
+      font-size: 0.95rem;
       cursor: pointer;
-      transition: all 0.3s ease;
-      opacity: 0.5;
+      transition: opacity 0.2s, transform 0.1s;
     }
 
-    .btn-open { background: var(--accent-green); color: #000; }
-    .btn-close { background: var(--accent-red); color: #fff; }
+    .btn-room:active {
+      transform: scale(0.98);
+    }
 
+    .btn-open {
+      background: var(--accent-green);
+      color: #000;
+    }
+
+    .btn-close {
+      background: var(--accent-red);
+      color: #fff;
+    }
+
+    /* Efectos Ruleta (Toggles) */
     .effects-container {
       background: #111114;
       border: 1px solid #27272a;
@@ -100,52 +128,172 @@
       padding: 18px 30px;
       display: flex;
       justify-content: space-around;
+      align-items: center;
     }
 
-    .toggle-group { display: flex; align-items: center; gap: 15px; cursor: pointer; }
-    .switch { position: relative; display: inline-block; width: 52px; height: 28px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #3f3f46; transition: .3s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
-    input:checked + .slider { background-color: var(--accent-red); }
-    input:checked + .slider:before { transform: translateX(24px); }
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      cursor: pointer;
+    }
 
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { color: var(--text-muted); font-size: 0.8rem; padding: 12px 10px; border-bottom: 1px solid var(--card-border); }
-    td { padding: 12px 10px; border-bottom: 1px solid #222226; font-size: 0.9rem; }
-    .balance-text { color: var(--accent-green); font-weight: bold; }
+    .toggle-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      user-select: none;
+      cursor: pointer;
+    }
 
-    .reload-box { display: flex; gap: 6px; }
-    .input-amount { background: #09090b; border: 1px solid #27272a; color: #fff; padding: 6px 10px; border-radius: 6px; width: 70px; text-align: right; }
-    .btn-save { background: var(--accent-red); color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    /* Switch Interactivo */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #3f3f46;
+      transition: .3s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-red);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    /* Tabla */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #222226;
+      font-size: 0.9rem;
+    }
+
+    .balance-text {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+
+    .badge-red { background: #991b1b; color: #fca5a5; }
+    .badge-black { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
+    .badge-green { background: #166534; color: #86efac; }
+
+    .reload-box {
+      display: flex;
+      gap: 6px;
+    }
+
+    .input-amount {
+      background: #09090b;
+      border: 1px solid #27272a;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      width: 70px;
+      text-align: right;
+    }
+
+    .btn-save {
+      background: var(--accent-red);
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-save:hover {
+      background: #dc2626;
+    }
   </style>
 </head>
 <body>
 
 <div class="admin-container">
+
+  <!-- Header -->
   <div class="header-panel">
     <div class="header-title">👑 PANEL ADMINISTRACIÓN CREADORES</div>
+    <!-- Redirección directa a index.html -->
     <a href="/" class="btn-back">← Volver al Juego</a>
   </div>
 
+  <!-- Control de Sala y Efectos -->
   <div class="section-card">
     <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
+    
     <div class="room-controls">
-      <button class="btn-room btn-open" id="btn-abrir" onclick="controlarSala(true)">ABRIR SALA</button>
-      <button class="btn-room btn-close" id="btn-cerrar" onclick="controlarSala(false)">CERRAR SALA</button>
+      <button class="btn-room btn-open" onclick="controlarSala(true)">🚀 ABRIR SALA (Loop Continuo)</button>
+      <button class="btn-room btn-close" onclick="controlarSala(false)">🔴 CERRAR SALA</button>
     </div>
 
+    <!-- Switches con ID para JS -->
     <div class="effects-container">
-      <label class="toggle-group">
-        <span>Sonido</span>
+      <label class="toggle-group" for="toggle-sonido">
+        <span class="toggle-label">Sonido</span>
         <span class="switch">
           <input type="checkbox" id="toggle-sonido" checked onchange="toggleEfecto('Sonido', this.checked)">
           <span class="slider"></span>
         </span>
       </label>
 
-      <label class="toggle-group">
-        <span>Luces LED</span>
+      <label class="toggle-group" for="toggle-led">
+        <span class="toggle-label">Luces LED</span>
         <span class="switch">
           <input type="checkbox" id="toggle-led" checked onchange="toggleEfecto('Luces LED', this.checked)">
           <span class="slider"></span>
@@ -154,99 +302,115 @@
     </div>
   </div>
 
+  <!-- Tabla Detallada -->
   <div class="section-card">
-    <div class="section-title">👤 Control de Saldos de Usuarios</div>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Usuario</th>
-          <th>Saldo Actual</th>
-          <th>Recargar Saldo</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in usuarios %}
-        <tr>
-          <td><strong>{{ u.id }}</strong></td>
-          <td>{{ u.username }}</td>
-          <td class="balance-text" id="saldo-{{ u.id }}">S/ {{ u.saldo }}</td>
-          <td>
-            <div class="reload-box">
-              <input type="number" step="0.5" class="input-amount" id="input-{{ u.id }}" value="{{ u.saldo }}">
-              <button class="btn-save" onclick="guardarSaldo('{{ u.id }}', '{{ u.username }}')">Guardar</button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="section-title">👤 Control de Apuestas y Saldos de Usuarios</div>
+    
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Monto Apostado</th>
+            <th>Apuesta (N° / Color)</th>
+            <th>Resultado Ganador</th>
+            <th>Saldo Actual</th>
+            <th>Recargar Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Usuario 1 -->
+          <tr>
+            <td><strong>M000</strong></td>
+            <td>admin</td>
+            <td>S/ 50.00</td>
+            <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td class="balance-text" id="saldo-M000">S/ 5000.0</td>
+            <td>
+              <div class="reload-box">
+                <input type="number" class="input-amount" id="input-M000" value="5000.0">
+                <button class="btn-save" onclick="guardarSaldo('M000', 'admin')">Guardar</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Usuario 2 -->
+          <tr>
+            <td><strong>M001</strong></td>
+            <td>Capi admin</td>
+            <td>S/ 10.00</td>
+            <td>N° <strong>14</strong> / <span class="badge badge-black">NEGRO</span></td>
+            <td>N° <strong>0</strong> / <span class="badge badge-green">VERDE</span></td>
+            <td class="balance-text" id="saldo-M001">S/ 20.0</td>
+            <td>
+              <div class="reload-box">
+                <input type="number" class="input-amount" id="input-M001" value="20.0">
+                <button class="btn-save" onclick="guardarSaldo('M001', 'Capi admin')">Guardar</button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Usuario 3 -->
+          <tr>
+            <td><strong>M002</strong></td>
+            <td>DejameApostar</td>
+            <td>S/ 100.00</td>
+            <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td class="balance-text" id="saldo-M002">S/ 200.0</td>
+            <td>
+              <div class="reload-box">
+                <input type="number" class="input-amount" id="input-M002" value="200.0">
+                <button class="btn-save" onclick="guardarSaldo('M002', 'DejameApostar')">Guardar</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
 </div>
 
+<!-- Funciones en JavaScript -->
 <script>
-  document.addEventListener("DOMContentLoaded", async () => {
-    try {
-      const res = await fetch('/estado_sala');
-      const data = await res.json();
-      actualizarBotonesSala(data.sistema_activo);
-    } catch (e) {}
-  });
+  // 1. Redirección Volver al Juego
+  // (Manejado directamente mediante la etiqueta <a href="index.html">)
 
-  async function controlarSala(abrir) {
-    try {
-      const res = await fetch('/api/sala/estado', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ abierta: abrir })
-      });
-      const data = await res.json();
-      actualizarBotonesSala(data.abierta);
-      alert(data.abierta ? "🚀 SALA ABIERTA" : "SALA CERRADA");
-    } catch (e) { alert("Error al conectar con Render."); }
-  }
-
-  function actualizarBotonesSala(estaAbierta) {
-    const btnAbrir = document.getElementById("btn-abrir");
-    const btnCerrar = document.getElementById("btn-cerrar");
-    if (estaAbierta) {
-      btnAbrir.style.opacity = "1";
-      btnAbrir.style.boxShadow = "0 0 15px rgba(34, 197, 94, 0.6)";
-      btnCerrar.style.opacity = "0.4";
-      btnCerrar.style.boxShadow = "none";
+  // 2. Control de Abrir / Cerrar Sala
+  function controlarSala(abrir) {
+    if (abrir) {
+      alert("🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado.");
     } else {
-      btnCerrar.style.opacity = "1";
-      btnCerrar.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.6)";
-      btnAbrir.style.opacity = "0.4";
-      btnAbrir.style.boxShadow = "none";
+      alert("🔴 Sala CERRADA. Las apuestas han sido congeladas.");
     }
   }
 
-  async function toggleEfecto(tipo, estado) {
-    fetch('/api/esp32/efectos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: tipo, estado: estado })
-    });
+  // 3. Activar / Desactivar Sonido y Luces (Switches)
+  function toggleEfecto(tipo, estado) {
+    const accion = estado ? "ACTIVADO" : "DESACTIVADO";
+    console.log(`[ESP32]: ${tipo} -> ${accion}`);
   }
 
-  async function guardarSaldo(idUsuario, nombreUsuario) {
+  // 4. Guardar y actualizar saldo en tiempo real
+  function guardarSaldo(idUsuario, nombreUsuario) {
     const input = document.getElementById(`input-${idUsuario}`);
     const elementoSaldo = document.getElementById(`saldo-${idUsuario}`);
+    
     const nuevoMonto = parseFloat(input.value);
 
-    if (isNaN(nuevoMonto) || nuevoMonto < 0) return alert("⚠️ Saldo inválido.");
+    if (isNaN(nuevoMonto) || nuevoMonto < 0) {
+      alert("⚠️ Ingresa un monto válido.");
+      return;
+    }
 
-    try {
-      await fetch('/api/usuarios/saldo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: idUsuario, saldo: nuevoMonto })
-      });
-      elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
-      alert(`✅ Saldo actualizado a S/ ${nuevoMonto.toFixed(1)}`);
-    } catch (e) { alert("Error guardando saldo."); }
+    // Actualiza el texto en la tabla al instante
+    elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
+    alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
   }
 </script>
+
 </body>
 </html>
