@@ -376,29 +376,46 @@
 
 <!-- Funciones en JavaScript -->
 <script>
-  // 1. Redirección Volver al Juego
-  // (Manejado directamente mediante la etiqueta <a href="index.html">)
-
-  // 2. Control de Abrir / Cerrar Sala
-  function controlarSala(abrir) {
-    if (abrir) {
-      alert("🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado.");
-    } else {
-      alert("🔴 Sala CERRADA. Las apuestas han sido congeladas.");
+// 2. Control de Abrir / Cerrar Sala
+  async function controlarSala(abrir) {
+    try {
+      const res = await fetch('/api/sala/estado', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ abierta: abrir })
+      });
+      const data = await res.json();
+      if (data.status === 'ok') {
+        if (abrir) {
+          alert("🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado.");
+        } else {
+          alert("🔴 Sala CERRADA. Las apuestas han sido congeladas.");
+        }
+      }
+    } catch (error) {
+      console.error("Error al controlar sala:", error);
+      alert("Error de conexión con el servidor.");
     }
   }
 
   // 3. Activar / Desactivar Sonido y Luces (Switches)
-  function toggleEfecto(tipo, estado) {
-    const accion = estado ? "ACTIVADO" : "DESACTIVADO";
-    console.log(`[ESP32]: ${tipo} -> ${accion}`);
+  async function toggleEfecto(tipo, estado) {
+    try {
+      await fetch('/api/esp32/efectos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ tipo: tipo, estado: estado })
+      });
+      console.log(`[ESP32]: ${tipo} -> ${estado ? "ACTIVADO" : "DESACTIVADO"}`);
+    } catch (error) {
+      console.error("Error al cambiar efectos:", error);
+    }
   }
 
   // 4. Guardar y actualizar saldo en tiempo real
-  function guardarSaldo(idUsuario, nombreUsuario) {
+  async function guardarSaldo(idUsuario, nombreUsuario) {
     const input = document.getElementById(`input-${idUsuario}`);
     const elementoSaldo = document.getElementById(`saldo-${idUsuario}`);
-    
     const nuevoMonto = parseFloat(input.value);
 
     if (isNaN(nuevoMonto) || nuevoMonto < 0) {
@@ -406,9 +423,26 @@
       return;
     }
 
-    // Actualiza el texto en la tabla al instante
-    elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
-    alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
+    try {
+      // Enviamos la petición al backend
+      const res = await fetch('/api/usuarios/saldo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: idUsuario, saldo: nuevoMonto })
+      });
+      const data = await res.json();
+      
+      if (data.status === 'ok') {
+        // Actualiza el texto en la tabla al instante
+        elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
+        alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
+      } else {
+        alert("❌ Error: " + data.message);
+      }
+    } catch (error) {
+      console.error("Error al actualizar saldo:", error);
+      alert("Error de conexión al guardar el saldo.");
+    }
   }
 </script>
 

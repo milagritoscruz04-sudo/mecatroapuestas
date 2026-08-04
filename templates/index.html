@@ -116,6 +116,12 @@
         th { color: #a1a1aa; }
         .win { color: #22c55e; font-weight: bold; }
         .loss { color: #ef4444; font-weight: bold; }
+        /* Barra de progreso animada y Tabla */
+        .progress-bar-container { width: 100%; height: 6px; background: #27272a; border-radius: 4px; margin-top: 20px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #ef4444; width: 100%; }
+        .winners-table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 13px; }
+        .winners-table th, .winners-table td { padding: 8px; text-align: center; border-bottom: 1px solid #27272a; }
+        .winners-table th { color: #f59e0b; }
     </style>
 </head>
 <body>
@@ -244,17 +250,28 @@
     </div>
 
     <!-- Modal Anuncio Ganador -->
-    <div class="modal" id="modalGanador">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color: #f59e0b; letter-spacing: 1px;">🎉 RESULTADO DE RONDA 🎉</h2>
-            <div class="winner-display">
-                <div class="winner-number" id="win_num">0</div>
-                <div id="win_color" style="font-size: 18px; font-weight: bold; letter-spacing: 2px;">VERDE</div>
-            </div>
-            <div id="win_resumen" style="margin-bottom: 20px; font-size: 14px; color: #cbd5e1;"></div>
-            <button class="btn-action" onclick="closeGanadorModal()">CONTINUAR JUGANDO</button>
+<!-- Modal Anuncio Ganador -->
+<div class="modal" id="modalGanador">
+    <div class="modal-content" style="text-align: center;">
+        <h2 style="color: #f59e0b; letter-spacing: 1px;">🎉 RESULTADO DE RONDA 🎉</h2>
+        <div class="winner-display">
+            <div class="winner-number" id="win_num">0</div>
+            <div id="win_color" style="font-size: 18px; font-weight: bold; letter-spacing: 2px;">VERDE</div>
+        </div>
+        <div id="win_resumen" style="font-size: 14px; color: #cbd5e1;"></div>
+        
+        <div style="max-height: 150px; overflow-y: auto; margin-top: 10px;">
+            <table class="winners-table" id="tabla_ganadores">
+                <!-- Se llena por JavaScript -->
+            </table>
+        </div>
+
+        <!-- Barra de progreso de 5 segundos -->
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progress_bar"></div>
         </div>
     </div>
+</div>
 
     <script>
         const ROJOS = [1, 3, 5, 6, 8, 10, 13, 15, 17, 18, 20, 22];
@@ -422,7 +439,7 @@
                     `).join('');
                 }
 
-                // Popup Ganador
+ // Popup Ganador y Lógica de 5 segundos
                 if (state.ultimo_resultado && state.ultimo_resultado.numero_ronda !== ultimaRondaProcesada) {
                     ultimaRondaProcesada = state.ultimo_resultado.numero_ronda;
                     
@@ -437,18 +454,45 @@
                     const totalG = state.ultimo_resultado.ganadores.length;
                     const totalMonto = state.ultimo_resultado.total_repartido;
                     document.getElementById("win_resumen").innerHTML = 
-                        `<b>${totalG} ganadores</b> obtuvieron <b style="color:#22c55e;">S/ ${totalMonto}</b> en esta ronda.`;
+                        `<b>${totalG} ganadores</b> obtuvieron <b style="color:#22c55e;">S/ ${totalMonto}</b> en total.`;
 
+                    // Llenar tabla de ganadores individualmente
+                    const tabla = document.getElementById("tabla_ganadores");
+                    if (state.ultimo_resultado.ganadores.length > 0) {
+                        tabla.innerHTML = `<tr><th>Usuario</th><th>Premio</th></tr>` + 
+                            state.ultimo_resultado.ganadores.map(g => `<tr><td>${g.username}</td><td style="color:#22c55e; font-weight:bold;">S/ ${g.monto_ganado}</td></tr>`).join('');
+                    } else {
+                        tabla.innerHTML = `<tr><td colspan="2" style="color:#a1a1aa;">Nadie ganó esta ronda 😢</td></tr>`;
+                    }
+
+                    // Mostrar modal
                     document.getElementById("modalGanador").style.display = "flex";
+
+                    // Animación de la barrita y cierre automático
+                    const progressBar = document.getElementById("progress_bar");
+                    let timeLeft = 5000; // 5 segundos
+                    progressBar.style.width = "100%";
+                    
+                    // Limpiar intervalos/timeouts previos por si acaso
+                    if(window.progressInterval) clearInterval(window.progressInterval);
+                    if(window.popupTimeout) clearTimeout(window.popupTimeout);
+
+                    window.progressInterval = setInterval(() => {
+                        timeLeft -= 50;
+                        let percentage = (timeLeft / 5000) * 100;
+                        progressBar.style.width = `${percentage}%`;
+                        if (timeLeft <= 0) clearInterval(window.progressInterval);
+                    }, 50);
+
+                    window.popupTimeout = setTimeout(() => {
+                        closeGanadorModal();
+                    }, 5000);
                 }
 
             } catch (err) {
-                console.error(err);
+                console.error("Error al actualizar estado:", err);
             }
         }
-
-        setInterval(actualizarEstado, 1000);
-        actualizarEstado();
     </script>
 </body>
 </html>
