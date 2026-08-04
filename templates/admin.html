@@ -1,136 +1,366 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - MECATROAPUESTAS</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #09090b; color: #f8fafc; padding: 20px; }
-        
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #18181b; padding: 18px 22px; border-radius: 12px; border: 1px solid #27272a; }
-        h1 { color: #ef4444; font-size: 20px; }
-        
-        .card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-        .card-title { font-size: 15px; font-weight: bold; color: #f59e0b; margin-bottom: 15px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración</title>
+  <style>
+    /* Estilos Generales Dark Theme */
+    :root {
+      --bg-dark: #0f0f12;
+      --card-bg: #18181c;
+      --card-border: #26262b;
+      --accent-red: #ef4444;
+      --accent-green: #22c55e;
+      --text-main: #ffffff;
+      --text-muted: #a1a1aa;
+    }
 
-        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn-control { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 15px; }
-        .btn-open { background: #22c55e; color: black; }
-        .btn-close { background: #ef4444; color: white; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
 
-        .toggle-box { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #09090b; border-radius: 8px; border: 1px solid #27272a; margin-top: 10px; font-size: 14px; }
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
 
-        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: #18181b; color: white; padding: 14px 20px; border-radius: 10px; border-left: 5px solid #22c55e; box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 14px; font-weight: 600; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; }
-        .toast.show { opacity: 1; transform: translateY(0); }
+    /* Encabezado */
+    .header-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 15px 25px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #27272a; font-size: 14px; }
-        th { color: #a1a1aa; background: #09090b; }
-        
-        input[type="number"] { padding: 8px; background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: white; width: 100px; }
-        .btn-save { padding: 8px 12px; background: #dc2626; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; }
-        .btn-back { display: inline-block; padding: 10px 18px; background: #27272a; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; }
-    </style>
+    .header-title {
+      font-weight: 800;
+      color: #ef4444;
+      letter-spacing: 0.5px;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-back {
+      background: #27272a;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-back:hover {
+      background: #3f3f46;
+    }
+
+    /* Bloques Principales */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .section-title {
+      color: #f59e0b;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Botones de Control de Sala */
+    .room-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .btn-room {
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .btn-open {
+      background: var(--accent-green);
+      color: #000;
+    }
+
+    .btn-close {
+      background: var(--accent-red);
+      color: #fff;
+    }
+
+    /* Efectos Ruleta (Toggles estilo Imagen 2) */
+    .effects-container {
+      background: #111114;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toggle-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    /* Switch Styling */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #3f3f46;
+      transition: .3s;
+      border-radius: 34px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-red);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    /* Tabla de Apuestas y Usuarios */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #222226;
+      font-size: 0.9rem;
+    }
+
+    .balance-text {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    /* Badges de Colores y Apuestas */
+    .badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: inline-block;
+    }
+
+    .badge-red { background: #991b1b; color: #fca5a5; }
+    .badge-black { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
+    .badge-green { background: #166534; color: #86efac; }
+
+    /* Inputs de Recarga */
+    .reload-box {
+      display: flex;
+      gap: 6px;
+    }
+
+    .input-amount {
+      background: #09090b;
+      border: 1px solid #27272a;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      width: 70px;
+      text-align: right;
+    }
+
+    .btn-save {
+      background: var(--accent-red);
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-save:hover {
+      opacity: 0.9;
+    }
+  </style>
 </head>
 <body>
-    <div id="toast-container"></div>
 
-    <div class="container">
-        <div class="header">
-            <h1>👑 PANEL ADMINISTRACIÓN CREADORES</h1>
-            <a href="/" class="btn-back">⬅ Volver al Juego</a>
-        </div>
+<div class="admin-container">
 
-        <div class="card">
-            <div class="card-title">⚡ ESTADO Y CONTROL DE SALA EN VIVO</div>
-            <div class="controls-grid">
-                <button class="btn-control btn-open" onclick="abrirSala()">🚀 ABRIR SALA (Loop Continuo)</button>
-                <button class="btn-control btn-close" onclick="cerrarSala()">🛑 CERRAR SALA</button>
-            </div>
+  <!-- Header -->
+  <div class="header-panel">
+    <div class="header-title">👑 PANEL ADMINISTRACIÓN CREADORES</div>
+    <button class="btn-back">← Volver al Juego</button>
+  </div>
 
-            <div style="margin-top: 15px;">
-                <div class="toggle-box">
-                    <span>Efecto Sonido ESP32</span>
-                    <input type="checkbox" id="chk_sonido" {% if sonido %}checked{% endif %} onchange="actualizarEfectos()">
-                </div>
-                <div class="toggle-box">
-                    <span>Efecto Luces LED ESP32</span>
-                    <input type="checkbox" id="chk_luces" {% if luces %}checked{% endif %} onchange="actualizarEfectos()">
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">👤 MODIFICAR SALDO DE USUARIOS</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Usuario</th>
-                        <th>Saldo</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in usuarios %}
-                    <tr>
-                        <td><b>{{ u.id }}</b></td>
-                        <td>{{ u.username }}</td>
-                        <td style="color: #22c55e; font-weight: bold;">S/ {{ u.saldo }}</td>
-                        <td>
-                            <form method="POST" style="display: flex; gap: 8px;">
-                                <input type="hidden" name="usuario_id" value="{{ u.id }}">
-                                <input type="number" step="1" name="nuevo_saldo" value="{{ u.saldo }}">
-                                <button type="submit" class="btn-save">Guardar</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+  <!-- Control de Sala y Efectos -->
+  <div class="section-card">
+    <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
+    
+    <div class="room-controls">
+      <button class="btn-room btn-open">🚀 ABRIR SALA (Loop Continuo)</button>
+      <button class="btn-room btn-close">🔴 CERRAR SALA</button>
     </div>
 
-    <script>
-        function showToast(mensaje) {
-            const container = document.getElementById("toast-container");
-            const toast = document.createElement("div");
-            toast.className = 'toast';
-            toast.innerText = mensaje;
-            container.appendChild(toast);
-            setTimeout(() => toast.classList.add("show"), 10);
-            setTimeout(() => {
-                toast.classList.remove("show");
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
+    <!-- Toggles horizontales como la imagen 2 -->
+    <div class="effects-container">
+      <div class="toggle-group">
+        <span class="toggle-label">Sonido</span>
+        <label class="switch">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
 
-        async function abrirSala() {
-            const res = await fetch('/admin/abrir_sala', { method: 'POST' });
-            const data = await res.json();
-            showToast(data.message);
-        }
+      <div class="toggle-group">
+        <span class="toggle-label">Luces LED</span>
+        <label class="switch">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
 
-        async function cerrarSala() {
-            const res = await fetch('/admin/cerrar_sala', { method: 'POST' });
-            const data = await res.json();
-            showToast(data.message);
-        }
+  <!-- Tabla Detallada de Usuarios y Apuestas -->
+  <div class="section-card">
+    <div class="section-title">👤 Control de Apuestas y Saldos de Usuarios</div>
+    
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Monto Apostado</th>
+            <th>Apuesta (N° / Color)</th>
+            <th>Resultado Ganador</th>
+            <th>Saldo Actual</th>
+            <th>Recargar Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Usuario 1 -->
+          <tr>
+            <td><strong>M000</strong></td>
+            <td>admin</td>
+            <td>S/ 50.00</td>
+            <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td class="balance-text">S/ 5000.0</td>
+            <td>
+              <div class="reload-box">
+                <input type="number" class="input-amount" value="5000.0">
+                <button class="btn-save">Guardar</button>
+              </div>
+            </td>
+          </tr>
 
-        async function actualizarEfectos() {
-            const sonido = document.getElementById("chk_sonido").checked;
-            const luces = document.getElementById("chk_luces").checked;
+          <!-- Usuario 2 -->
+          <tr>
+            <td><strong>M001</strong></td>
+            <td>Capi admin</td>
+            <td>S/ 10.00</td>
+            <td>N° <strong>14</strong> / <span class="badge badge-black">NEGRO</span></td>
+            <td>N° <strong>0</strong> / <span class="badge badge-green">VERDE</span></td>
+            <td class="balance-text">S/ 20.0</td>
+            <td>
+              <div class="reload-box">
+                <input type="number" class="input-amount" value="20.0">
+                <button class="btn-save">Guardar</button>
+              </div>
+            </td>
+          </tr>
 
-            await fetch('/admin/efectos', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ sonido, luces })
-            });
-            showToast("Efectos guardados");
-        }
-    </script>
+          <!-- Usuario 3 -->
+          <tr>
+            <td><strong>M002</strong></td>
+            <td>DejameApostar</td>
+            <td>S/ 100.00</td>
+            <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
+            <td class="balance-text">S/ 200.0</td>
+            <td>
+              <div class="reload-box">
+                <input type="number" class="input-amount" value="200.0">
+                <button class="btn-save">Guardar</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
 </body>
 </html>
