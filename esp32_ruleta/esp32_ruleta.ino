@@ -18,9 +18,8 @@ const int PIN_BUZZER = 23;
 
 WebServer server(80);
 
-// CAMBIA ESTO POR TUS DATOS DE RED WI-FI
-const char* ssid = "TU_WIFI";
-const char* password = "TU_WIFI_PASSWORD";
+const char* ssid = "XIOMARA-2.4G";
+const char* password = "Xnicole27";
 
 // Secuencia de pasos para el motor 28BYJ-48
 const int pasoSecuencia[8][4] = {
@@ -36,7 +35,7 @@ const int pasoSecuencia[8][4] = {
 
 int pasoActualMotor = 0;
 
-// ORDEN EXACTO DE LOS NÚMEROS EN TU RULETA FÍSICA (En sentido horario según tu imagen)
+// ORDEN EXACTO DE LOS NÚMEROS EN TU RULETA FÍSICA (En sentido horario)
 int ordenRuleta[24] = {0, 5, 10, 19, 8, 11, 22, 17, 2, 3, 12, 21, 20, 9, 14, 23, 18, 1, 4, 15, 6, 7, 16, 13};
 int indicePosicionActual = 0; // Posición inicial en el array (empieza en el 0)
 
@@ -93,37 +92,41 @@ void handleGirar() {
     
     // 1. Mostrar en LCD que está girando
     mostrarMensajeLCD("  GIRANDO...", " NUM: " + String(numeroGanador));
-    
-    // Tono de giro inicial
     tone(PIN_BUZZER, 800, 100);
 
-    // 2. Calcular cuántas casillas hay que moverse desde la posición actual hasta el ganador
+    // 2. Calcular casilla destino y pasos exactos redondeados
     int indiceDestino = buscarIndiceNumero(numeroGanador);
     int distanciaCasillas = (indiceDestino - indicePosicionActual + 24) % 24;
     
-    // Hacemos que dé al menos 3 vueltas completas de emoción + los pasos exactos hasta la casilla destino
-    int pasosTotalesGiro = (PASOS_TOTALES_VUELTA * 3) + (int)(distanciaCasillas * PASOS_POR_CASILLA);
-
-    // 3. Ejecutar el movimiento desacelerando progresivamente (efecto mecánico real)
-    // Vueltas rápidas
-    darPasos(PASOS_TOTALES_VUELTA * 3, 1200);
+    int pasosCasillasDestino = round(distanciaCasillas * PASOS_POR_CASILLA);
+    int pasosVueltaShow = PASOS_TOTALES_VUELTA * 1; // 1 vuelta completa rápida
     
-    // Frenado suave por tramos
-    darPasos((int)(PASOS_POR_CASILLA * distanciaCasillas * 0.6), 1800);
-    tone(PIN_BUZZER, 1000, 40);
-    
-    darPasos((int)(PASOS_POR_CASILLA * distanciaCasillas * 0.4), 2800);
-    tone(PIN_BUZZER, 1200, 60);
+    // Tramos de desaceleración para el tramo final
+    int tramoFreno1 = round(pasosCasillasDestino * 0.5);
+    int tramoFreno2 = pasosCasillasDestino - tramoFreno1; // Residuo exacto
 
-    // Actualizar la posición actual de la ruleta
+    // 3. Ejecutar giro rápido + frenado progresivo (~6 a 8 segundos en total)
+    darPasos(pasosVueltaShow, 1200);
+    
+    if (tramoFreno1 > 0) {
+      darPasos(tramoFreno1, 1800);
+      tone(PIN_BUZZER, 1000, 40);
+    }
+    
+    if (tramoFreno2 > 0) {
+      darPasos(tramoFreno2, 2600);
+      tone(PIN_BUZZER, 1200, 60);
+    }
+
+    // Actualizar posición global y liberar bobinas del motor
     indicePosicionActual = indiceDestino;
     apagarMotor();
 
-    // 4. Mostrar el resultado final en la LCD y activar sonido de victoria
+    // 4. Mostrar el resultado final en la LCD y reproducir tono de victoria
     mostrarMensajeLCD("GANADOR: " + String(numeroGanador), "¡EXCELENTE!");
     sonidoGanador();
 
-    // Responder a Python que el giro terminó correctamente
+    // Responder a Python que el giro concluyó con éxito
     server.send(200, "application/json", "{\"status\":\"ok\", \"ganador\": " + String(numeroGanador) + "}");
   } else {
     server.send(400, "application/json", "{\"status\":\"error\", \"mensaje\":\"Falta argumento ganador\"}");
@@ -153,14 +156,14 @@ void setup() {
 
   Serial.println("");
   Serial.println("¡WiFi Conectado!");
-  Serial.print("IP del ESP32: ");
+  Serial.print("IP del ESP32: 192.168.18.100");
   Serial.println(WiFi.localIP());
 
-  mostrarMensajeLCD(" IP ASIGNADA:", WiFi.localIP().toString());
+  mostrarMensajeLCD(" IP ASIGNADA: 192.168.18.100", WiFi.localIP().toString());
   delay(2500);
   mostrarMensajeLCD("MECATROAPUESTAS", "LISTO PARA JUGAR");
 
-  // Endpoint web que Python consumirá automáticamente al finalizar cada ronda
+  // Endpoint web consumido por el backend en Python
   server.on("/girar", handleGirar);
   server.begin();
 }
