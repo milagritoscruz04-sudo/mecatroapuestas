@@ -113,6 +113,8 @@ def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
 def obtener_resultado_ruleta():
     return random.randint(0, 23)
 
+# --- RUTAS PRINCIPALES ---
+
 @app.route('/')
 def index():
     if 'user_id' not in session:
@@ -213,6 +215,8 @@ def cambiar_password():
     conn.close()
 
     return jsonify({'status': 'ok', 'message': 'Contraseña actualizada correctamente'})
+
+# --- PANEL DE ADMINISTRACIÓN Y CONTROL ---
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
@@ -318,6 +322,34 @@ def bucle_ciclo_continuo():
             print(f"[Error en Bucle de Sala] {e}")
             time.sleep(2)
 
+# --- NUEVOS ENDPOINTS API PARA EL FRONTEND ADMIN Y JUEGO ---
+
+@app.route('/api/sala/estado', methods=['GET', 'POST'])
+def api_sala_estado():
+    """Endpoint flexible para consultar o actualizar estado desde JS (Fetch)"""
+    if request.method == 'POST':
+        if not es_admin_autorizado(session.get('username')):
+            return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
+
+        data = request.json or {}
+        # Acepta tanto "estado": "ABIERTA" como "abierta": True
+        abrir = data.get('abierta')
+        if abrir is None and 'estado' in data:
+            abrir = (data['estado'] == 'ABIERTA')
+
+        if abrir:
+            if not SALA_ESTADO["sistema_activo"]:
+                SALA_ESTADO["sistema_activo"] = True
+                threading.Thread(target=bucle_ciclo_continuo, daemon=True).start()
+        else:
+            SALA_ESTADO["sistema_activo"] = False
+            SALA_ESTADO["activa"] = False
+            SALA_ESTADO["tiempo_restante"] = 0
+
+        return jsonify({'status': 'ok', 'abierta': SALA_ESTADO["sistema_activo"]})
+
+    return jsonify({'abierta': SALA_ESTADO["sistema_activo"], 'activa': SALA_ESTADO["activa"]})
+
 @app.route('/admin/abrir_sala', methods=['POST'])
 def abrir_sala_admin():
     if not es_admin_autorizado(session.get('username')):
@@ -340,21 +372,48 @@ def cerrar_sala_admin():
     SALA_ESTADO["tiempo_restante"] = 0
     return jsonify({'status': 'ok', 'message': 'Sala cerrada correctamente'})
 
+@app.route('/api/esp32/efectos', methods=['POST'])
 @app.route('/admin/efectos', methods=['POST'])
 def configurar_efectos():
     if not es_admin_autorizado(session.get('username')):
         return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
 
     data = request.json or {}
+    if 'tipo' in data and 'estado' in data:
+        if data['tipo'] == 'Sonido':
+            SALA_ESTADO["sonido"] = bool(data['estado'])
+        elif data['tipo'] == 'Luces LED':
+            SALA_ESTADO["luces"] = bool(data['estado'])
+    
     if 'sonido' in data:
         SALA_ESTADO["sonido"] = bool(data["sonido"])
     if 'luces' in data:
         SALA_ESTADO["luces"] = bool(data["luces"])
+
     return jsonify({'status': 'ok', 'sonido': SALA_ESTADO["sonido"], 'luces': SALA_ESTADO["luces"]})
+
+@app.route('/api/usuarios/saldo', methods=['POST'])
+def api_actualizar_saldo():
+    if not es_admin_autorizado(session.get('username')):
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
+
+    data = request.json or {}
+    usuario_id = data.get('id')
+    nuevo_saldo = float(data.get('saldo', 0))
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, usuario_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'status': 'ok', 'saldo': nuevo_saldo})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/estado_sala', methods=['GET'])
 def estado_sala():
-    # Retorna también el saldo fresco del usuario conectado
     saldo_actual = 0.0
     if 'user_id' in session:
         try:
@@ -429,4 +488,5 @@ def apostar_sala():
     return jsonify({'status': 'ok', 'nuevo_saldo': nuevo_saldo})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
