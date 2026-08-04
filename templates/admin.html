@@ -376,7 +376,7 @@
 
 <!-- Funciones en JavaScript -->
 <script>
-// 2. Control de Abrir / Cerrar Sala
+  // Control de Abrir / Cerrar Sala
   async function controlarSala(abrir) {
     try {
       const res = await fetch('/api/sala/estado', {
@@ -398,7 +398,7 @@
     }
   }
 
-  // 3. Activar / Desactivar Sonido y Luces (Switches)
+  // Activar / Desactivar Sonido y Luces (Switches)
   async function toggleEfecto(tipo, estado) {
     try {
       await fetch('/api/esp32/efectos', {
@@ -412,7 +412,7 @@
     }
   }
 
-  // 4. Guardar y actualizar saldo en tiempo real
+  // Guardar y actualizar saldo en tiempo real
   async function guardarSaldo(idUsuario, nombreUsuario) {
     const input = document.getElementById(`input-${idUsuario}`);
     const elementoSaldo = document.getElementById(`saldo-${idUsuario}`);

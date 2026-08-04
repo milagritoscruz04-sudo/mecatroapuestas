@@ -249,7 +249,6 @@
         </div>
     </div>
 
-    <!-- Modal Anuncio Ganador -->
 <!-- Modal Anuncio Ganador -->
 <div class="modal" id="modalGanador">
     <div class="modal-content" style="text-align: center;">
@@ -439,7 +438,7 @@
                     `).join('');
                 }
 
- // Popup Ganador y Lógica de 5 segundos
+                // Popup Ganador y Lógica de 5 segundos
                 if (state.ultimo_resultado && state.ultimo_resultado.numero_ronda !== ultimaRondaProcesada) {
                     ultimaRondaProcesada = state.ultimo_resultado.numero_ronda;
                     
@@ -493,6 +492,10 @@
                 console.error("Error al actualizar estado:", err);
             }
         }
+        actualizarEstado();
+        
+        setInterval(actualizarEstado, 1000);
+
     </script>
 </body>
 </html>

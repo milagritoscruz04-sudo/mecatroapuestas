@@ -26,6 +26,8 @@ SALA_ESTADO = {
     "numero_ronda": 0
 }
 
+# --- CONFIGURACIÓN DE BASE DE DATOS ---
+
 def get_db_connection():
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -36,6 +38,8 @@ def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Tabla de usuarios
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS usuarios (
                 id VARCHAR(50) PRIMARY KEY,
@@ -45,6 +49,8 @@ def init_db():
                 fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Tabla de historial
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS historial (
                 id SERIAL PRIMARY KEY,
@@ -60,12 +66,15 @@ def init_db():
                 fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Crear admin por defecto si no existe
         cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
         if not cursor.fetchone():
             cursor.execute(
                 "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
                 ('M000', 'admin', 'admin123', 5000.0)
             )
+            
         conn.commit()
         cursor.close()
         conn.close()
@@ -73,6 +82,8 @@ def init_db():
         print(f"[DB Init Error] {e}")
 
 init_db()
+
+# --- FUNCIONES AUXILIARES ---
 
 def es_admin_autorizado(username):
     return username in ['Capi admin', 'El diavlo', 'admin']
@@ -112,6 +123,86 @@ def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
 
 def obtener_resultado_ruleta():
     return random.randint(0, 23)
+
+# --- BUCLE DE JUEGO PRINCIPAL ---
+
+def bucle_ciclo_continuo():
+    """Ejecución continua de rondas"""
+    while SALA_ESTADO["sistema_activo"]:
+        try:
+            SALA_ESTADO["activa"] = True
+            SALA_ESTADO["tiempo_restante"] = 20
+            SALA_ESTADO["apuestas"] = []
+            SALA_ESTADO["numero_ronda"] += 1
+            ronda_actual = SALA_ESTADO["numero_ronda"]
+
+            # Cuenta regresiva para apuestas
+            while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
+                time.sleep(1)
+                SALA_ESTADO["tiempo_restante"] -= 1
+
+            if not SALA_ESTADO["sistema_activo"]:
+                break
+
+            # Cerrar apuestas y procesar ganadores
+            SALA_ESTADO["activa"] = False
+            numero_ganador = obtener_resultado_ruleta()
+            color_ganador = obtener_color(numero_ganador)
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            ganadores_list = []
+            total_repartido = 0.0
+
+            for ap in SALA_ESTADO["apuestas"]:
+                gano = (ap['numero'] == numero_ganador)
+                monto_ganado = (ap['monto'] * 24.0) if gano else 0.0
+
+                cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
+                user = cursor.fetchone()
+
+                if user:
+                    nuevo_saldo = user['saldo'] + monto_ganado
+                    resultado_str = "GANASTE" if gano else "PERDISTE"
+
+                    cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
+                    cursor.execute('''
+                        INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado, monto_ganado)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str, monto_ganado))
+
+                    if gano:
+                        ganadores_list.append({
+                            'username': ap['username'],
+                            'monto_ganado': monto_ganado
+                        })
+                        total_repartido += monto_ganado
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+            SALA_ESTADO["ultimo_resultado"] = {
+                "numero_ganador": numero_ganador,
+                "color_ganador": color_ganador,
+                "ganadores": ganadores_list,
+                "total_repartido": total_repartido,
+                "numero_ronda": ronda_actual
+            }
+
+            # Enviar señal al microcontrolador ESP32
+            enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
+
+            # Pausa entre rondas para mostrar resultados
+            tiempo_pausa = 7
+            while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
+                time.sleep(1)
+                tiempo_pausa -= 1
+
+        except Exception as e:
+            print(f"[Error en Bucle de Sala] {e}")
+            time.sleep(2)
 
 # --- RUTAS DE NAVEGACIÓN Y AUTENTICACIÓN ---
 
@@ -198,6 +289,7 @@ def admin_panel():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Mantenemos este bloque por si alguna vez mandas el form tradicional
     if request.method == 'POST':
         usuario_id = request.form.get('usuario_id')
         nuevo_saldo = float(request.form.get('nuevo_saldo', 0))
@@ -217,82 +309,6 @@ def admin_panel():
         sistema_activo=SALA_ESTADO["sistema_activo"]
     )
 
-# --- BUCLE DE JUEGO ---
-
-def bucle_ciclo_continuo():
-    """Ejecución continua de rondas"""
-    while SALA_ESTADO["sistema_activo"]:
-        try:
-            SALA_ESTADO["activa"] = True
-            SALA_ESTADO["tiempo_restante"] = 20
-            SALA_ESTADO["apuestas"] = []
-            SALA_ESTADO["numero_ronda"] += 1
-            ronda_actual = SALA_ESTADO["numero_ronda"]
-
-            while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
-                time.sleep(1)
-                SALA_ESTADO["tiempo_restante"] -= 1
-
-            if not SALA_ESTADO["sistema_activo"]:
-                break
-
-            SALA_ESTADO["activa"] = False
-            numero_ganador = obtener_resultado_ruleta()
-            color_ganador = obtener_color(numero_ganador)
-
-            conn = get_db_connection()
-            cursor = conn.cursor()
-
-            ganadores_list = []
-            total_repartido = 0.0
-
-            for ap in SALA_ESTADO["apuestas"]:
-                gano = (ap['numero'] == numero_ganador)
-                monto_ganado = (ap['monto'] * 24.0) if gano else 0.0
-
-                cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
-                user = cursor.fetchone()
-
-                if user:
-                    nuevo_saldo = user['saldo'] + monto_ganado
-                    resultado_str = "GANASTE" if gano else "PERDISTE"
-
-                    cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
-                    cursor.execute('''
-                        INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado, monto_ganado)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str, monto_ganado))
-
-                    if gano:
-                        ganadores_list.append({
-                            'username': ap['username'],
-                            'monto_ganado': monto_ganado
-                        })
-                        total_repartido += monto_ganado
-
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            SALA_ESTADO["ultimo_resultado"] = {
-                "numero_ganador": numero_ganador,
-                "color_ganador": color_ganador,
-                "ganadores": ganadores_list,
-                "total_repartido": total_repartido,
-                "numero_ronda": ronda_actual
-            }
-
-            enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
-
-            tiempo_pausa = 7
-            while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
-                time.sleep(1)
-                tiempo_pausa -= 1
-
-        except Exception as e:
-            print(f"[Error en Bucle de Sala] {e}")
-            time.sleep(2)
-
 # --- ENDPOINTS API Y CONTROL DE SALA ---
 
 @app.route('/api/sala/estado', methods=['GET', 'POST'])
@@ -303,6 +319,8 @@ def api_sala_estado():
 
         data = request.json or {}
         abrir = data.get('abierta')
+        
+        # Mantenemos compatibilidad con formato anterior por seguridad
         if abrir is None and 'estado' in data:
             abrir = (data['estado'] == 'ABIERTA')
 
@@ -314,7 +332,7 @@ def api_sala_estado():
             SALA_ESTADO["sistema_activo"] = False
             SALA_ESTADO["activa"] = False
             SALA_ESTADO["tiempo_restante"] = 0
-            SALA_ESTADO["ultimo_resultado"] = None  # Se borra resultado al cerrar
+            SALA_ESTADO["ultimo_resultado"] = None  
 
         return jsonify({'status': 'ok', 'abierta': SALA_ESTADO["sistema_activo"]})
 
@@ -338,12 +356,15 @@ def configurar_efectos():
         return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
 
     data = request.json or {}
+    
+    # Manejar estructura tipo y estado del nuevo front
     if 'tipo' in data and 'estado' in data:
         if data['tipo'] == 'Sonido':
             SALA_ESTADO["sonido"] = bool(data['estado'])
         elif data['tipo'] == 'Luces LED':
             SALA_ESTADO["luces"] = bool(data['estado'])
     
+    # Compatibilidad con formato directo si existiese
     if 'sonido' in data:
         SALA_ESTADO["sonido"] = bool(data["sonido"])
     if 'luces' in data:
