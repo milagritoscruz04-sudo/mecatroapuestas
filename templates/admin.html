@@ -286,8 +286,8 @@
     <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
     
     <div class="room-controls">
-      <button class="btn-room btn-open" onclick="controlarSala(true)">🚀 ABRIR SALA (Loop Continuo)</button>
-      <button class="btn-room btn-close" onclick="controlarSala(false)">🔴 CERRAR SALA</button>
+      <button class="btn-room btn-open" onclick="controlarSala(true)">ABRIR SALA (Loop Continuo)</button>
+      <button class="btn-room btn-close" onclick="controlarSala(false)">CERRAR SALA</button>
     </div>
 
     <div class="effects-container">
@@ -310,7 +310,7 @@
   </div>
 
   <div class="section-card">
-    <div class="section-title">👤 Control de Apuestas y Saldos de Usuarios</div>
+    <div class="section-title">👤 Usuarios y Saldos</div>
     
     <div class="table-responsive">
       <table>
@@ -319,7 +319,6 @@
             <th>ID</th>
             <th>Usuario</th>
             <th>Saldo Actual</th>
-            <th>Estado Sala</th>
             <th>Recargar Saldo</th>
           </tr>
         </thead>
@@ -330,11 +329,6 @@
             <td>{{ usuario.username }}</td>
             <td class="balance-text" id="saldo-{{ usuario.id }}">S/ {{ usuario.saldo }}</td>
             <td>
-              <span class="estado-sala-badge {% if usuario.id in ['M000', 'M001'] %}estado-abierta{% else %}estado-cerrada{% endif %}">
-                {% if usuario.id in ['M000', 'M001'] %}ADMIN{% else %}JUGADOR{% endif %}
-              </span>
-            </td>
-            <td>
               <div class="reload-box">
                 <input type="number" class="input-amount" id="input-{{ usuario.id }}" value="{{ usuario.saldo }}">
                 <button class="btn-save" onclick="guardarSaldo('{{ usuario.id }}', '{{ usuario.username }}')">Guardar</button>
@@ -342,6 +336,52 @@
             </td>
           </tr>
           {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">📜 Historial de Apuestas (últimas 50)</div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Monto</th>
+            <th>Apostó a</th>
+            <th>Salió</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in historial %}
+          <tr>
+            <td>{{ h.fecha.strftime('%d/%m %H:%M') if h.fecha else '-' }}</td>
+            <td>{{ h.username }}</td>
+            <td>S/ {{ h.monto }}</td>
+            <td>
+              <span class="badge {% if h.color_elegido == 'Rojo' %}badge-red{% elif h.color_elegido == 'Negro' %}badge-black{% else %}badge-green{% endif %}">
+                N° {{ h.numero_elegido }} ({{ h.color_elegido }})
+              </span>
+            </td>
+            <td>
+              <span class="badge {% if h.color_ganador == 'Rojo' %}badge-red{% elif h.color_ganador == 'Negro' %}badge-black{% else %}badge-green{% endif %}">
+                N° {{ h.numero_ganador }} ({{ h.color_ganador }})
+              </span>
+            </td>
+            <td style="font-weight:bold; color: {% if h.resultado == 'GANASTE' %}#22c55e{% else %}#ef4444{% endif %};">
+              {{ h.resultado }} {% if h.resultado == 'GANASTE' %}(+S/ {{ h.monto_ganado }}){% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if historial|length == 0 %}
+          <tr>
+            <td colspan="6" style="text-align:center; color:#a1a1aa; padding:20px;">Aún no hay apuestas registradas</td>
+          </tr>
+          {% endif %}
         </tbody>
       </table>
     </div>
@@ -359,7 +399,7 @@
       });
       const data = await res.json();
       if (data.status === 'ok') {
-        alert(abrir ? "🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado." : "🔴 Sala CERRADA. Las apuestas han sido congeladas.");
+        alert(abrir ? "Sala ABIERTA. El loop continuo de la ruleta ha iniciado." : "Sala CERRADA. Las apuestas han sido congeladas.");
       } else {
         alert("Error: " + data.message);
       }
@@ -388,7 +428,7 @@
     const nuevoMonto = parseFloat(input.value);
 
     if (isNaN(nuevoMonto) || nuevoMonto < 0) {
-      alert("⚠️ Ingresa un monto válido.");
+      alert("⚠️Ingresa un monto válido.");
       return;
     }
 
@@ -402,7 +442,7 @@
       
       if (data.status === 'ok') {
         elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
-        alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
+        alert(`Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
       } else {
         alert("❌ Error: " + data.message);
       }

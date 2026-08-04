@@ -13,9 +13,9 @@ app.secret_key = "mecatroapuestas_secret_key"
 
 ESP32_IP = "http://192.168.18.100"
 
-# --- DISTRIBUCIÓN DE COLORES CORREGIDA ---
-# Según la imagen: Rojos = {1,3,5,7,9,12,14,16,18,19,21,23}, Negros = el resto (pares)
-NUMEROS_ROJOS = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23}
+# --- DISTRIBUCIÓN DE COLORES CORREGIDA (según el tablero de referencia) ---
+# 0 = Verde | Pares (2,4,6...22) = Rojo | Impares (1,3,5...23) = Negro
+NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
 
 SALA_ESTADO = {
     "sistema_activo": False,
@@ -98,7 +98,8 @@ init_db()
 # --- FUNCIONES AUXILIARES ---
 
 def es_admin_autorizado(username):
-    return username in ['Capi admin', 'El diavlo', 'admin']
+    # Solo estos dos usuarios pueden ver el panel de administración
+    return username in ['admin', 'Capi admin']
 
 def generar_siguiente_id():
     conn = get_db_connection()
@@ -210,7 +211,7 @@ def bucle_ciclo_continuo():
 
             enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
 
-            tiempo_pausa = 7
+            tiempo_pausa = 5
             while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
                 time.sleep(1)
                 tiempo_pausa -= 1
@@ -312,12 +313,18 @@ def admin_panel():
 
     cursor.execute('SELECT * FROM usuarios ORDER BY id')
     usuarios = cursor.fetchall()
+
+    # Historial de apuestas de TODOS los usuarios (monto, número/color apostado, color ganador, resultado)
+    cursor.execute('SELECT * FROM historial ORDER BY id DESC LIMIT 50')
+    historial = cursor.fetchall()
+
     cursor.close()
     conn.close()
 
     return render_template(
         'admin.html', 
         usuarios=usuarios,
+        historial=historial,
         sonido=SALA_ESTADO["sonido"], 
         luces=SALA_ESTADO["luces"],
         sistema_activo=SALA_ESTADO["sistema_activo"]
