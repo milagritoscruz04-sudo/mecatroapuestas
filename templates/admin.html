@@ -99,11 +99,12 @@
     .btn-room {
       padding: 14px;
       border-radius: 8px;
-      border: none;
+      border: 2px solid transparent;
       font-weight: 700;
       font-size: 0.95rem;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+      transition: all 0.3s ease;
+      opacity: 0.6;
     }
 
     .btn-room:active {
@@ -269,7 +270,6 @@
   <!-- Header -->
   <div class="header-panel">
     <div class="header-title">👑 PANEL ADMINISTRACIÓN CREADORES</div>
-    <!-- Redirección directa a index.html -->
     <a href="/" class="btn-back">← Volver al Juego</a>
   </div>
 
@@ -278,11 +278,11 @@
     <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
     
     <div class="room-controls">
-      <button class="btn-room btn-open" onclick="controlarSala(true)">🚀 ABRIR SALA (Loop Continuo)</button>
-      <button class="btn-room btn-close" onclick="controlarSala(false)">🔴 CERRAR SALA</button>
+      <button class="btn-room btn-open" id="btn-abrir" onclick="controlarSala(true)">🚀 ABRIR SALA (Loop Continuo)</button>
+      <button class="btn-room btn-close" id="btn-cerrar" onclick="controlarSala(false)">🔴 CERRAR SALA</button>
     </div>
 
-    <!-- Switches con ID para JS -->
+    <!-- Switches con ID -->
     <div class="effects-container">
       <label class="toggle-group" for="toggle-sonido">
         <span class="toggle-label">Sonido</span>
@@ -374,28 +374,86 @@
 
 </div>
 
-<!-- Funciones en JavaScript -->
+<!-- Lógica JavaScript Integrada -->
 <script>
-  // 1. Redirección Volver al Juego
-  // (Manejado directamente mediante la etiqueta <a href="index.html">)
+  // 1. Cargar estado guardado al iniciar la vista de admin
+  document.addEventListener("DOMContentLoaded", () => {
+    cargarEstadoInicial();
+  });
+
+  function cargarEstadoInicial() {
+    // Leer estado de la sala guardado
+    const estadoSala = localStorage.getItem("salaEstado") || "CERRADA";
+    actualizarBotonesSala(estadoSala === "ABIERTA");
+
+    // Leer estado de switches
+    const sonidoActivo = localStorage.getItem("efectoSonido") !== "false";
+    const ledActivo = localStorage.getItem("efectoLED") !== "false";
+    document.getElementById("toggle-sonido").checked = sonidoActivo;
+    document.getElementById("toggle-led").checked = ledActivo;
+  }
 
   // 2. Control de Abrir / Cerrar Sala
-  function controlarSala(abrir) {
-    if (abrir) {
-      alert("🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado.");
+  async function controlarSala(abrir) {
+    const estadoTexto = abrir ? "ABIERTA" : "CERRADA";
+
+    // A) Guardar estado localmente (Sincronización directa en el navegador)
+    localStorage.setItem("salaEstado", estadoTexto);
+    actualizarBotonesSala(abrir);
+
+    // B) Enviar la petición al backend en Render
+    try {
+      // Reemplazar '/api/sala/estado' por tu endpoint de Render si es diferente
+      await fetch('/api/sala/estado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: estadoTexto })
+      });
+    } catch (error) {
+      console.warn("Backend no conectado aún, estado guardado en navegador local.", error);
+    }
+
+    alert(`✅ Estado cambiado: SALA ${estadoTexto}`);
+  }
+
+  // Resaltar visualmente el botón activo
+  function actualizarBotonesSala(estaAbierta) {
+    const btnAbrir = document.getElementById("btn-abrir");
+    const btnCerrar = document.getElementById("btn-cerrar");
+
+    if (estaAbierta) {
+      btnAbrir.style.opacity = "1";
+      btnAbrir.style.boxShadow = "0 0 15px rgba(34, 197, 94, 0.6)";
+      btnCerrar.style.opacity = "0.4";
+      btnCerrar.style.boxShadow = "none";
     } else {
-      alert("🔴 Sala CERRADA. Las apuestas han sido congeladas.");
+      btnCerrar.style.opacity = "1";
+      btnCerrar.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.6)";
+      btnAbrir.style.opacity = "0.4";
+      btnAbrir.style.boxShadow = "none";
     }
   }
 
-  // 3. Activar / Desactivar Sonido y Luces (Switches)
-  function toggleEfecto(tipo, estado) {
-    const accion = estado ? "ACTIVADO" : "DESACTIVADO";
-    console.log(`[ESP32]: ${tipo} -> ${accion}`);
+  // 3. Activar / Desactivar Sonido y Luces
+  async function toggleEfecto(tipo, estado) {
+    const claveStorage = tipo === 'Sonido' ? 'efectoSonido' : 'efectoLED';
+    localStorage.setItem(claveStorage, estado);
+
+    console.log(`[ESP32]: ${tipo} -> ${estado ? "ACTIVADO" : "DESACTIVADO"}`);
+
+    try {
+      await fetch('/api/esp32/efectos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo: tipo, estado: estado })
+      });
+    } catch (e) {
+      console.warn("Error al enviar comando a ESP32");
+    }
   }
 
   // 4. Guardar y actualizar saldo en tiempo real
-  function guardarSaldo(idUsuario, nombreUsuario) {
+  async function guardarSaldo(idUsuario, nombreUsuario) {
     const input = document.getElementById(`input-${idUsuario}`);
     const elementoSaldo = document.getElementById(`saldo-${idUsuario}`);
     
@@ -406,8 +464,19 @@
       return;
     }
 
-    // Actualiza el texto en la tabla al instante
     elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
+    localStorage.setItem(`saldo_${idUsuario}`, nuevoMonto);
+
+    try {
+      await fetch('/api/usuarios/saldo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: idUsuario, saldo: nuevoMonto })
+      });
+    } catch (e) {
+      console.warn("Saldo guardado localmente.");
+    }
+
     alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
   }
 </script>
