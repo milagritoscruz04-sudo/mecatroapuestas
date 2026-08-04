@@ -12,8 +12,9 @@ app.secret_key = "mecatroapuestas_secret_key"
 
 ESP32_IP = "http://192.168.18.100"
 
-# Mapa exacto de colores del tablero (0-23)
-NUMEROS_ROJOS = {1, 3, 5, 6, 8, 10, 13, 15, 17, 18, 20, 22}
+# --- NUEVA DISTRIBUCIÓN DE COLORES (Según tu imagen) ---
+# Todos los pares (sin contar el 0) son Rojos, los impares son Negros.
+NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
 
 SALA_ESTADO = {
     "sistema_activo": False,
@@ -39,7 +40,6 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Tabla de usuarios
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS usuarios (
                 id VARCHAR(50) PRIMARY KEY,
@@ -50,7 +50,6 @@ def init_db():
             )
         ''')
         
-        # Tabla de historial
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS historial (
                 id SERIAL PRIMARY KEY,
@@ -67,7 +66,6 @@ def init_db():
             )
         ''')
         
-        # Crear admin por defecto si no existe
         cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
         if not cursor.fetchone():
             cursor.execute(
@@ -121,13 +119,22 @@ def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
             print(f"[ESP32 Comms Warning] {e}")
     threading.Thread(target=tarea, daemon=True).start()
 
+# --- LOGICA DE VICTORIA BENEFICIOSA PARA LOS JUGADORES ---
 def obtener_resultado_ruleta():
+    apuestas_actuales = SALA_ESTADO["apuestas"]
+    
+    # Si hay apuestas, les damos un 60% de probabilidad de ganar forzadamente
+    if apuestas_actuales and random.random() <= 0.60:
+        apuesta_suertuda = random.choice(apuestas_actuales)
+        print(f"[MODO SUERTE ACTIVADO] Forzando el número {apuesta_suertuda['numero']} para ayudar a los jugadores.")
+        return apuesta_suertuda['numero']
+        
+    # El otro 40% de las veces, o si nadie apostó, es totalmente al azar
     return random.randint(0, 23)
 
 # --- BUCLE DE JUEGO PRINCIPAL ---
 
 def bucle_ciclo_continuo():
-    """Ejecución continua de rondas"""
     while SALA_ESTADO["sistema_activo"]:
         try:
             SALA_ESTADO["activa"] = True
@@ -136,7 +143,6 @@ def bucle_ciclo_continuo():
             SALA_ESTADO["numero_ronda"] += 1
             ronda_actual = SALA_ESTADO["numero_ronda"]
 
-            # Cuenta regresiva para apuestas
             while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
                 time.sleep(1)
                 SALA_ESTADO["tiempo_restante"] -= 1
@@ -144,8 +150,8 @@ def bucle_ciclo_continuo():
             if not SALA_ESTADO["sistema_activo"]:
                 break
 
-            # Cerrar apuestas y procesar ganadores
             SALA_ESTADO["activa"] = False
+            # Llama a nuestra nueva función compasiva
             numero_ganador = obtener_resultado_ruleta()
             color_ganador = obtener_color(numero_ganador)
 
@@ -191,10 +197,8 @@ def bucle_ciclo_continuo():
                 "numero_ronda": ronda_actual
             }
 
-            # Enviar señal al microcontrolador ESP32
             enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
 
-            # Pausa entre rondas para mostrar resultados
             tiempo_pausa = 7
             while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
                 time.sleep(1)
@@ -289,7 +293,6 @@ def admin_panel():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Mantenemos este bloque por si alguna vez mandas el form tradicional
     if request.method == 'POST':
         usuario_id = request.form.get('usuario_id')
         nuevo_saldo = float(request.form.get('nuevo_saldo', 0))
@@ -320,7 +323,6 @@ def api_sala_estado():
         data = request.json or {}
         abrir = data.get('abierta')
         
-        # Mantenemos compatibilidad con formato anterior por seguridad
         if abrir is None and 'estado' in data:
             abrir = (data['estado'] == 'ABIERTA')
 
@@ -357,14 +359,12 @@ def configurar_efectos():
 
     data = request.json or {}
     
-    # Manejar estructura tipo y estado del nuevo front
     if 'tipo' in data and 'estado' in data:
         if data['tipo'] == 'Sonido':
             SALA_ESTADO["sonido"] = bool(data['estado'])
         elif data['tipo'] == 'Luces LED':
             SALA_ESTADO["luces"] = bool(data['estado'])
     
-    # Compatibilidad con formato directo si existiese
     if 'sonido' in data:
         SALA_ESTADO["sonido"] = bool(data["sonido"])
     if 'luces' in data:
