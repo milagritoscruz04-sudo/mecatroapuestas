@@ -12,8 +12,6 @@ from psycopg2.extras import RealDictCursor
 app = Flask(__name__)
 app.secret_key = "mecatroapuestas_secret_key"
 
-ESP32_IP = "http://192.168.18.100"
-
 NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
 
 DURACION_APUESTAS = 20   # segundos para apostar
@@ -141,12 +139,8 @@ def obtener_color(numero):
     return "Rojo" if numero in NUMEROS_ROJOS else "Negro"
 
 def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
-    def tarea():
-        try:
-            requests.get(f"{ESP32_IP}/girar?ganador={numero_ganador}&sonido={sonido}&luces={luces}", timeout=2)
-        except Exception as e:
-            print(f"[ESP32 Comms Warning] {e}")
-    threading.Thread(target=tarea, daemon=True).start()
+    # Desactivado: El ESP32 lee los datos desde el servidor mediante Polling a /api/esp32/cmd
+    pass
 
 def obtener_resultado_ruleta(apuestas_actuales):
     if apuestas_actuales and random.random() <= 0.60:
@@ -244,8 +238,8 @@ def bucle_ciclo_continuo():
 
                     fin_girando = datetime.utcnow() + timedelta(seconds=DURACION_GIRANDO)
                     cursor.execute('''
-                        UPDATE sala_live SET fase = 'girando', fase_termina_en = %s, heartbeat = NOW() WHERE id = 1
-                    ''', (fin_girando,))
+                        UPDATE sala_live SET fase = 'girando', ultimo_numero_ganador = %s, fase_termina_en = %s, heartbeat = NOW() WHERE id = 1
+                    ''', (numero_ganador, fin_girando))
                     conn.commit()
                 finally:
                     cursor.close()
@@ -446,6 +440,26 @@ def admin_panel():
         luces=sala['luces'] if sala else True,
         sistema_activo=sala['sistema_activo'] if sala else False
     )
+
+@app.route('/api/esp32/cmd', methods=['GET'])
+def api_esp32_cmd():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT fase, numero_ronda, ultimo_numero_ganador, sonido, luces FROM sala_live WHERE id = 1")
+    sala = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not sala:
+        return jsonify({"fase": "apuestas", "ronda": 0, "ganador": 0, "sonido": 1, "luces": 1})
+
+    return jsonify({
+        "fase": sala['fase'],
+        "ronda": sala['numero_ronda'],
+        "ganador": sala['ultimo_numero_ganador'] if sala['ultimo_numero_ganador'] is not None else 0,
+        "sonido": 1 if sala['sonido'] else 0,
+        "luces": 1 if sala['luces'] else 0
+    })
 
 @app.route('/api/sala/estado', methods=['POST'])
 def api_sala_estado():

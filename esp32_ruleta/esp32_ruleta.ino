@@ -1,5 +1,5 @@
 #include <WiFi.h>
-#include <WebServer.h>
+#include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -16,10 +16,12 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // Pin del Buzzer integrado
 const int PIN_BUZZER = 23;
 
-WebServer server(80);
-
+// Configuración de red Wi-Fi
 const char* ssid = "XIOMARA-2.4G";
 const char* password = "Xnicole27";
+
+// URL del servidor Flask
+const char* serverUrl = "https://mecatroapuestas.onrender.com/api/esp32/cmd";
 
 // Secuencia de pasos para el motor 28BYJ-48
 const int pasoSecuencia[8][4] = {
@@ -35,12 +37,16 @@ const int pasoSecuencia[8][4] = {
 
 int pasoActualMotor = 0;
 
-// ORDEN EXACTO DE LOS NÚMEROS EN TU RULETA FÍSICA (En sentido horario)
+// ORDEN EXACTO DE LOS NÚMEROS EN LA RULETA FÍSICA (En sentido horario)
 int ordenRuleta[24] = {0, 5, 10, 19, 8, 11, 22, 17, 2, 3, 12, 21, 20, 9, 14, 23, 18, 1, 4, 15, 6, 7, 16, 13};
 int indicePosicionActual = 0; // Posición inicial en el array (empieza en el 0)
 
 const int PASOS_TOTALES_VUELTA = 4096;
 const float PASOS_POR_CASILLA = (float)PASOS_TOTALES_VUELTA / 24.0; // ~170.66 pasos por número
+
+// Control de estados de la sala
+int ultimaRondaProcesada = -1;
+String ultimaFase = "";
 
 void mostrarMensajeLCD(String linea1, String linea2) {
   lcd.clear();
@@ -76,7 +82,6 @@ void sonidoGanador() {
   noTone(PIN_BUZZER);
 }
 
-// Función para buscar en qué índice del array está el número ganador que manda Python
 int buscarIndiceNumero(int numeroBuscado) {
   for (int i = 0; i < 24; i++) {
     if (ordenRuleta[i] == numeroBuscado) {
@@ -86,50 +91,39 @@ int buscarIndiceNumero(int numeroBuscado) {
   return 0;
 }
 
-void handleGirar() {
-  if (server.hasArg("ganador")) {
-    int numeroGanador = server.arg("ganador").toInt();
-    
-    // 1. Mostrar en LCD que está girando
-    mostrarMensajeLCD("  GIRANDO...", " NUM: " + String(numeroGanador));
+void ejecutarGiro(int numeroGanador, bool usarSonido) {
+  mostrarMensajeLCD("  GIRANDO...", " NUM: " + String(numeroGanador));
+  if (usarSonido) {
     tone(PIN_BUZZER, 800, 100);
+  }
 
-    // 2. Calcular casilla destino y pasos exactos redondeados
-    int indiceDestino = buscarIndiceNumero(numeroGanador);
-    int distanciaCasillas = (indiceDestino - indicePosicionActual + 24) % 24;
-    
-    int pasosCasillasDestino = round(distanciaCasillas * PASOS_POR_CASILLA);
-    int pasosVueltaShow = PASOS_TOTALES_VUELTA * 1; // 1 vuelta completa rápida
-    
-    // Tramos de desaceleración para el tramo final
-    int tramoFreno1 = round(pasosCasillasDestino * 0.5);
-    int tramoFreno2 = pasosCasillasDestino - tramoFreno1; // Residuo exacto
+  int indiceDestino = buscarIndiceNumero(numeroGanador);
+  int distanciaCasillas = (indiceDestino - indicePosicionActual + 24) % 24;
+  
+  int pasosCasillasDestino = round(distanciaCasillas * PASOS_POR_CASILLA);
+  int pasosVueltaShow = PASOS_TOTALES_VUELTA * 1; // 1 vuelta completa rápida
+  
+  int tramoFreno1 = round(pasosCasillasDestino * 0.5);
+  int tramoFreno2 = pasosCasillasDestino - tramoFreno1;
 
-    // 3. Ejecutar giro rápido + frenado progresivo (~6 a 8 segundos en total)
-    darPasos(pasosVueltaShow, 1200);
-    
-    if (tramoFreno1 > 0) {
-      darPasos(tramoFreno1, 1800);
-      tone(PIN_BUZZER, 1000, 40);
-    }
-    
-    if (tramoFreno2 > 0) {
-      darPasos(tramoFreno2, 2600);
-      tone(PIN_BUZZER, 1200, 60);
-    }
+  darPasos(pasosVueltaShow, 1200);
+  
+  if (tramoFreno1 > 0) {
+    darPasos(tramoFreno1, 1800);
+    if (usarSonido) tone(PIN_BUZZER, 1000, 40);
+  }
+  
+  if (tramoFreno2 > 0) {
+    darPasos(tramoFreno2, 2600);
+    if (usarSonido) tone(PIN_BUZZER, 1200, 60);
+  }
 
-    // Actualizar posición global y liberar bobinas del motor
-    indicePosicionActual = indiceDestino;
-    apagarMotor();
+  indicePosicionActual = indiceDestino;
+  apagarMotor();
 
-    // 4. Mostrar el resultado final en la LCD y reproducir tono de victoria
-    mostrarMensajeLCD("GANADOR: " + String(numeroGanador), "¡EXCELENTE!");
+  mostrarMensajeLCD("GANADOR: " + String(numeroGanador), "¡EXCELENTE!");
+  if (usarSonido) {
     sonidoGanador();
-
-    // Responder a Python que el giro concluyó con éxito
-    server.send(200, "application/json", "{\"status\":\"ok\", \"ganador\": " + String(numeroGanador) + "}");
-  } else {
-    server.send(400, "application/json", "{\"status\":\"error\", \"mensaje\":\"Falta argumento ganador\"}");
   }
 }
 
@@ -142,32 +136,60 @@ void setup() {
   pinMode(IN4, OUTPUT);
   pinMode(PIN_BUZZER, OUTPUT);
 
-  // Inicializar Pantalla LCD
   lcd.init();
   lcd.backlight();
   mostrarMensajeLCD(" CONECTANDO...", " WIFI...");
 
-  // Conexión Wi-Fi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("");
-  Serial.println("¡WiFi Conectado!");
-  Serial.print("IP del ESP32: 192.168.18.100");
+  Serial.println("\n¡WiFi Conectado!");
+  Serial.print("IP del ESP32: ");
   Serial.println(WiFi.localIP());
 
-  mostrarMensajeLCD(" IP ASIGNADA: 192.168.18.100", WiFi.localIP().toString());
-  delay(2500);
+  mostrarMensajeLCD(" IP ASIGNADA:", WiFi.localIP().toString());
+  delay(2000);
   mostrarMensajeLCD("MECATROAPUESTAS", "LISTO PARA JUGAR");
-
-  // Endpoint web consumido por el backend en Python
-  server.on("/girar", handleGirar);
-  server.begin();
 }
 
 void loop() {
-  server.handleClient();
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(serverUrl);
+    int httpCode = http.GET();
+
+    if (httpCode == 200) {
+      String payload = http.getString();
+      
+      StaticJsonDocument<256> doc;
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if (!error) {
+        String fase = doc["fase"];
+        int ronda = doc["ronda"];
+        int ganador = doc["ganador"];
+        bool sonido = doc["sonido"] == 1;
+
+        // Giro accionado al cambiar a la fase 'girando' en una nueva ronda
+        if (fase == "girando" && ronda != ultimaRondaProcesada) {
+          ultimaRondaProcesada = ronda;
+          ejecutarGiro(ganador, sonido);
+        } 
+        else if (fase == "apuestas" && ultimaFase != "apuestas") {
+          mostrarMensajeLCD(" REALIZA TU", " APUESTA (R" + String(ronda) + ")");
+        } 
+        else if (fase == "resultado" && ultimaFase != "resultado") {
+          mostrarMensajeLCD("RONDA " + String(ronda) + " FINAL", "GANADOR: " + String(ganador));
+        }
+
+        ultimaFase = fase;
+      }
+    }
+    http.end();
+  }
+  
+  delay(500); // Polling constante cada medio segundo
 }
