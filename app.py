@@ -113,7 +113,7 @@ def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
 def obtener_resultado_ruleta():
     return random.randint(0, 23)
 
-# --- RUTAS PRINCIPALES ---
+# --- RUTAS DE NAVEGACIÓN Y AUTENTICACIÓN ---
 
 @app.route('/')
 def index():
@@ -190,34 +190,6 @@ def logout():
     session.clear()
     return redirect(url_for('login_view'))
 
-@app.route('/cambiar_password', methods=['POST'])
-def cambiar_password():
-    if 'user_id' not in session:
-        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
-    
-    data = request.json
-    actual = data.get('actual')
-    nueva = data.get('nueva')
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT password FROM usuarios WHERE id = %s', (session['user_id'],))
-    user = cursor.fetchone()
-
-    if not user or user['password'] != actual:
-        cursor.close()
-        conn.close()
-        return jsonify({'status': 'error', 'message': 'La contraseña actual es incorrecta'}), 400
-
-    cursor.execute('UPDATE usuarios SET password = %s WHERE id = %s', (nueva, session['user_id']))
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    return jsonify({'status': 'ok', 'message': 'Contraseña actualizada correctamente'})
-
-# --- PANEL DE ADMINISTRACIÓN Y CONTROL ---
-
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
     if not es_admin_autorizado(session.get('username')):
@@ -245,8 +217,10 @@ def admin_panel():
         sistema_activo=SALA_ESTADO["sistema_activo"]
     )
 
+# --- BUCLE DE JUEGO ---
+
 def bucle_ciclo_continuo():
-    """Ejecución continua e ininterrumpida de rondas"""
+    """Ejecución continua de rondas"""
     while SALA_ESTADO["sistema_activo"]:
         try:
             SALA_ESTADO["activa"] = True
@@ -255,7 +229,6 @@ def bucle_ciclo_continuo():
             SALA_ESTADO["numero_ronda"] += 1
             ronda_actual = SALA_ESTADO["numero_ronda"]
 
-            # 1. Tiempo de apuestas
             while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
                 time.sleep(1)
                 SALA_ESTADO["tiempo_restante"] -= 1
@@ -263,7 +236,6 @@ def bucle_ciclo_continuo():
             if not SALA_ESTADO["sistema_activo"]:
                 break
 
-            # 2. Cierre de apuestas y giro
             SALA_ESTADO["activa"] = False
             numero_ganador = obtener_resultado_ruleta()
             color_ganador = obtener_color(numero_ganador)
@@ -312,7 +284,6 @@ def bucle_ciclo_continuo():
 
             enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
 
-            # Pausa para mostrar animación del resultado
             tiempo_pausa = 7
             while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
                 time.sleep(1)
@@ -322,17 +293,15 @@ def bucle_ciclo_continuo():
             print(f"[Error en Bucle de Sala] {e}")
             time.sleep(2)
 
-# --- NUEVOS ENDPOINTS API PARA EL FRONTEND ADMIN Y JUEGO ---
+# --- ENDPOINTS API Y CONTROL DE SALA ---
 
 @app.route('/api/sala/estado', methods=['GET', 'POST'])
 def api_sala_estado():
-    """Endpoint flexible para consultar o actualizar estado desde JS (Fetch)"""
     if request.method == 'POST':
         if not es_admin_autorizado(session.get('username')):
             return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
 
         data = request.json or {}
-        # Acepta tanto "estado": "ABIERTA" como "abierta": True
         abrir = data.get('abierta')
         if abrir is None and 'estado' in data:
             abrir = (data['estado'] == 'ABIERTA')
@@ -345,22 +314,11 @@ def api_sala_estado():
             SALA_ESTADO["sistema_activo"] = False
             SALA_ESTADO["activa"] = False
             SALA_ESTADO["tiempo_restante"] = 0
+            SALA_ESTADO["ultimo_resultado"] = None  # Se borra resultado al cerrar
 
         return jsonify({'status': 'ok', 'abierta': SALA_ESTADO["sistema_activo"]})
 
     return jsonify({'abierta': SALA_ESTADO["sistema_activo"], 'activa': SALA_ESTADO["activa"]})
-
-@app.route('/admin/abrir_sala', methods=['POST'])
-def abrir_sala_admin():
-    if not es_admin_autorizado(session.get('username')):
-        return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
-
-    if SALA_ESTADO["sistema_activo"]:
-        return jsonify({'status': 'error', 'message': 'La sala ya está en funcionamiento'}), 400
-
-    SALA_ESTADO["sistema_activo"] = True
-    threading.Thread(target=bucle_ciclo_continuo, daemon=True).start()
-    return jsonify({'status': 'ok', 'message': 'Sala abierta correctamente'})
 
 @app.route('/admin/cerrar_sala', methods=['POST'])
 def cerrar_sala_admin():
@@ -370,6 +328,7 @@ def cerrar_sala_admin():
     SALA_ESTADO["sistema_activo"] = False
     SALA_ESTADO["activa"] = False
     SALA_ESTADO["tiempo_restante"] = 0
+    SALA_ESTADO["ultimo_resultado"] = None
     return jsonify({'status': 'ok', 'message': 'Sala cerrada correctamente'})
 
 @app.route('/api/esp32/efectos', methods=['POST'])
