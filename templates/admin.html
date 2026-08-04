@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Administración</title>
   <style>
-    /* Estilos Generales Dark Theme */
     :root {
       --bg-dark: #0f0f12;
       --card-bg: #18181c;
@@ -32,7 +31,6 @@
       gap: 20px;
     }
 
-    /* Encabezado */
     .header-panel {
       display: flex;
       justify-content: space-between;
@@ -71,7 +69,6 @@
       transform: translateY(-1px);
     }
 
-    /* Bloques Principales */
     .section-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -88,7 +85,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Botones de Control de Sala */
     .room-controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -120,7 +116,6 @@
       color: #fff;
     }
 
-    /* Efectos Ruleta (Toggles) */
     .effects-container {
       background: #111114;
       border: 1px solid #27272a;
@@ -145,7 +140,6 @@
       cursor: pointer;
     }
 
-    /* Switch Interactivo */
     .switch {
       position: relative;
       display: inline-block;
@@ -189,7 +183,6 @@
       transform: translateX(24px);
     }
 
-    /* Tabla */
     .table-responsive {
       overflow-x: auto;
     }
@@ -260,20 +253,35 @@
     .btn-save:hover {
       background: #dc2626;
     }
+
+    .estado-sala-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .estado-abierta {
+      background: #166534;
+      color: #86efac;
+    }
+
+    .estado-cerrada {
+      background: #991b1b;
+      color: #fca5a5;
+    }
   </style>
 </head>
 <body>
 
 <div class="admin-container">
 
-  <!-- Header -->
   <div class="header-panel">
     <div class="header-title">👑 PANEL ADMINISTRACIÓN CREADORES</div>
-    <!-- Redirección directa a index.html -->
     <a href="/" class="btn-back">← Volver al Juego</a>
   </div>
 
-  <!-- Control de Sala y Efectos -->
   <div class="section-card">
     <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
     
@@ -282,12 +290,11 @@
       <button class="btn-room btn-close" onclick="controlarSala(false)">🔴 CERRAR SALA</button>
     </div>
 
-    <!-- Switches con ID para JS -->
     <div class="effects-container">
       <label class="toggle-group" for="toggle-sonido">
         <span class="toggle-label">Sonido</span>
         <span class="switch">
-          <input type="checkbox" id="toggle-sonido" checked onchange="toggleEfecto('Sonido', this.checked)">
+          <input type="checkbox" id="toggle-sonido" {% if sonido %}checked{% endif %} onchange="toggleEfecto('Sonido', this.checked)">
           <span class="slider"></span>
         </span>
       </label>
@@ -295,14 +302,13 @@
       <label class="toggle-group" for="toggle-led">
         <span class="toggle-label">Luces LED</span>
         <span class="switch">
-          <input type="checkbox" id="toggle-led" checked onchange="toggleEfecto('Luces LED', this.checked)">
+          <input type="checkbox" id="toggle-led" {% if luces %}checked{% endif %} onchange="toggleEfecto('Luces LED', this.checked)">
           <span class="slider"></span>
         </span>
       </label>
     </div>
   </div>
 
-  <!-- Tabla Detallada -->
   <div class="section-card">
     <div class="section-title">👤 Control de Apuestas y Saldos de Usuarios</div>
     
@@ -312,61 +318,30 @@
           <tr>
             <th>ID</th>
             <th>Usuario</th>
-            <th>Monto Apostado</th>
-            <th>Apuesta (N° / Color)</th>
-            <th>Resultado Ganador</th>
             <th>Saldo Actual</th>
+            <th>Estado Sala</th>
             <th>Recargar Saldo</th>
           </tr>
         </thead>
         <tbody>
-          <!-- Usuario 1 -->
+          {% for usuario in usuarios %}
           <tr>
-            <td><strong>M000</strong></td>
-            <td>admin</td>
-            <td>S/ 50.00</td>
-            <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
-            <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
-            <td class="balance-text" id="saldo-M000">S/ 5000.0</td>
+            <td><strong>{{ usuario.id }}</strong></td>
+            <td>{{ usuario.username }}</td>
+            <td class="balance-text" id="saldo-{{ usuario.id }}">S/ {{ usuario.saldo }}</td>
+            <td>
+              <span class="estado-sala-badge {% if usuario.id in ['M000', 'M001'] %}estado-abierta{% else %}estado-cerrada{% endif %}">
+                {% if usuario.id in ['M000', 'M001'] %}ADMIN{% else %}JUGADOR{% endif %}
+              </span>
+            </td>
             <td>
               <div class="reload-box">
-                <input type="number" class="input-amount" id="input-M000" value="5000.0">
-                <button class="btn-save" onclick="guardarSaldo('M000', 'admin')">Guardar</button>
+                <input type="number" class="input-amount" id="input-{{ usuario.id }}" value="{{ usuario.saldo }}">
+                <button class="btn-save" onclick="guardarSaldo('{{ usuario.id }}', '{{ usuario.username }}')">Guardar</button>
               </div>
             </td>
           </tr>
-
-          <!-- Usuario 2 -->
-          <tr>
-            <td><strong>M001</strong></td>
-            <td>Capi admin</td>
-            <td>S/ 10.00</td>
-            <td>N° <strong>14</strong> / <span class="badge badge-black">NEGRO</span></td>
-            <td>N° <strong>0</strong> / <span class="badge badge-green">VERDE</span></td>
-            <td class="balance-text" id="saldo-M001">S/ 20.0</td>
-            <td>
-              <div class="reload-box">
-                <input type="number" class="input-amount" id="input-M001" value="20.0">
-                <button class="btn-save" onclick="guardarSaldo('M001', 'Capi admin')">Guardar</button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Usuario 3 -->
-          <tr>
-            <td><strong>M002</strong></td>
-            <td>DejameApostar</td>
-            <td>S/ 100.00</td>
-            <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
-            <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
-            <td class="balance-text" id="saldo-M002">S/ 200.0</td>
-            <td>
-              <div class="reload-box">
-                <input type="number" class="input-amount" id="input-M002" value="200.0">
-                <button class="btn-save" onclick="guardarSaldo('M002', 'DejameApostar')">Guardar</button>
-              </div>
-            </td>
-          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -374,9 +349,7 @@
 
 </div>
 
-<!-- Funciones en JavaScript -->
 <script>
-  // Control de Abrir / Cerrar Sala
   async function controlarSala(abrir) {
     try {
       const res = await fetch('/api/sala/estado', {
@@ -386,11 +359,9 @@
       });
       const data = await res.json();
       if (data.status === 'ok') {
-        if (abrir) {
-          alert("🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado.");
-        } else {
-          alert("🔴 Sala CERRADA. Las apuestas han sido congeladas.");
-        }
+        alert(abrir ? "🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado." : "🔴 Sala CERRADA. Las apuestas han sido congeladas.");
+      } else {
+        alert("Error: " + data.message);
       }
     } catch (error) {
       console.error("Error al controlar sala:", error);
@@ -398,7 +369,6 @@
     }
   }
 
-  // Activar / Desactivar Sonido y Luces (Switches)
   async function toggleEfecto(tipo, estado) {
     try {
       await fetch('/api/esp32/efectos', {
@@ -412,7 +382,6 @@
     }
   }
 
-  // Guardar y actualizar saldo en tiempo real
   async function guardarSaldo(idUsuario, nombreUsuario) {
     const input = document.getElementById(`input-${idUsuario}`);
     const elementoSaldo = document.getElementById(`saldo-${idUsuario}`);
@@ -424,7 +393,6 @@
     }
 
     try {
-      // Enviamos la petición al backend
       const res = await fetch('/api/usuarios/saldo', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -433,7 +401,6 @@
       const data = await res.json();
       
       if (data.status === 'ok') {
-        // Actualiza el texto en la tabla al instante
         elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
         alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
       } else {

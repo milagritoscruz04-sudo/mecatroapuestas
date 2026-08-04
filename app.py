@@ -6,15 +6,16 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import requests
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "mecatroapuestas_secret_key"
 
 ESP32_IP = "http://192.168.18.100"
 
-# --- NUEVA DISTRIBUCIÓN DE COLORES (Según tu imagen) ---
-# Todos los pares (sin contar el 0) son Rojos, los impares son Negros.
-NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
+# --- DISTRIBUCIÓN DE COLORES CORREGIDA ---
+# Según la imagen: Rojos = {1,3,5,7,9,12,14,16,18,19,21,23}, Negros = el resto (pares)
+NUMEROS_ROJOS = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23}
 
 SALA_ESTADO = {
     "sistema_activo": False,
@@ -72,6 +73,19 @@ def init_db():
                 "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
                 ('M000', 'admin', 'admin123', 5000.0)
             )
+        
+        # Agregar usuarios de prueba si no existen
+        usuarios_prueba = [
+            ('M001', 'Capi admin', 'admin123', 200.0),
+            ('M002', 'DejameApostar', 'admin123', 200.0)
+        ]
+        for uid, uname, pwd, saldo in usuarios_prueba:
+            cursor.execute("SELECT * FROM usuarios WHERE id = %s", (uid,))
+            if not cursor.fetchone():
+                cursor.execute(
+                    "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
+                    (uid, uname, pwd, saldo)
+                )
             
         conn.commit()
         cursor.close()
@@ -119,17 +133,15 @@ def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
             print(f"[ESP32 Comms Warning] {e}")
     threading.Thread(target=tarea, daemon=True).start()
 
-# --- LOGICA DE VICTORIA BENEFICIOSA PARA LOS JUGADORES ---
+# --- LOGICA DE VICTORIA (60% probabilidad de ganar para jugadores) ---
 def obtener_resultado_ruleta():
     apuestas_actuales = SALA_ESTADO["apuestas"]
     
-    # Si hay apuestas, les damos un 60% de probabilidad de ganar forzadamente
     if apuestas_actuales and random.random() <= 0.60:
         apuesta_suertuda = random.choice(apuestas_actuales)
         print(f"[MODO SUERTE ACTIVADO] Forzando el número {apuesta_suertuda['numero']} para ayudar a los jugadores.")
         return apuesta_suertuda['numero']
         
-    # El otro 40% de las veces, o si nadie apostó, es totalmente al azar
     return random.randint(0, 23)
 
 # --- BUCLE DE JUEGO PRINCIPAL ---
@@ -151,7 +163,6 @@ def bucle_ciclo_continuo():
                 break
 
             SALA_ESTADO["activa"] = False
-            # Llama a nuestra nueva función compasiva
             numero_ganador = obtener_resultado_ruleta()
             color_ganador = obtener_color(numero_ganador)
 
@@ -329,16 +340,24 @@ def api_sala_estado():
         if abrir:
             if not SALA_ESTADO["sistema_activo"]:
                 SALA_ESTADO["sistema_activo"] = True
+                SALA_ESTADO["activa"] = True
+                SALA_ESTADO["tiempo_restante"] = 20
+                SALA_ESTADO["apuestas"] = []
                 threading.Thread(target=bucle_ciclo_continuo, daemon=True).start()
+                print("[SALA] Iniciando ciclo de ruleta...")
         else:
             SALA_ESTADO["sistema_activo"] = False
             SALA_ESTADO["activa"] = False
             SALA_ESTADO["tiempo_restante"] = 0
-            SALA_ESTADO["ultimo_resultado"] = None  
+            SALA_ESTADO["ultimo_resultado"] = None
+            print("[SALA] Sala cerrada.")
 
         return jsonify({'status': 'ok', 'abierta': SALA_ESTADO["sistema_activo"]})
 
-    return jsonify({'abierta': SALA_ESTADO["sistema_activo"], 'activa': SALA_ESTADO["activa"]})
+    return jsonify({
+        'abierta': SALA_ESTADO["sistema_activo"], 
+        'activa': SALA_ESTADO["activa"]
+    })
 
 @app.route('/admin/cerrar_sala', methods=['POST'])
 def cerrar_sala_admin():
@@ -391,6 +410,31 @@ def api_actualizar_saldo():
         return jsonify({'status': 'ok', 'saldo': nuevo_saldo})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/cambiar_password', methods=['POST'])
+def cambiar_password():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
+
+    data = request.json
+    actual = data.get('actual')
+    nueva = data.get('nueva')
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM usuarios WHERE id = %s AND password = %s', (session['user_id'], actual))
+    user = cursor.fetchone()
+
+    if not user:
+        cursor.close()
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'Contraseña actual incorrecta'}), 400
+
+    cursor.execute('UPDATE usuarios SET password = %s WHERE id = %s', (nueva, session['user_id']))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Contraseña actualizada correctamente'})
 
 @app.route('/estado_sala', methods=['GET'])
 def estado_sala():
