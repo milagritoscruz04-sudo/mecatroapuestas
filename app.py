@@ -14,7 +14,7 @@ app.secret_key = 'tu_clave_secreta_super_segura'
 # Configuración de la base de datos Supabase / PostgreSQL
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://postgres.voyfoiqionnheakpoint:apuestafijas2A@aws-1-us-west-2.pooler.supabase.com:6543/postgres')
 
-# IP del ESP32 
+# IP del ESP32
 ESP32_IP = "http://192.168.18.100"
 
 # Duración de las fases en segundos
@@ -172,7 +172,6 @@ def bucle_ciclo_continuo():
                     ''', (ronda_actual, numero_ganador, color_ganador, total_repartido, json.dumps(ganadores_list), fin_resultado))
                     conn.commit()
 
-                    # Notificar al ESP32 de forma asíncrona
                     try:
                         cursor.execute("SELECT sonido, luces FROM sala_live WHERE id = 1")
                         efectos = cursor.fetchone()
@@ -215,19 +214,33 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error = None
     if request.method == 'POST':
-        username = request.form.get('username')
+        # Captura tanto si envían 'username' como 'usuario' desde el formulario HTML
+        username = request.form.get('username') or request.form.get('usuario')
+        password = request.form.get('password') or request.form.get('clave')
+        
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM usuarios WHERE username = %s", (username,))
+        
+        # Consulta robusta adaptada al esquema de usuarios
+        if password:
+            cursor.execute("SELECT * FROM usuarios WHERE username = %s AND password = %s", (username, password))
+        else:
+            cursor.execute("SELECT * FROM usuarios WHERE username = %s", (username,))
+            
         user = cursor.fetchone()
         cursor.close()
         conn.close()
+        
         if user:
             session['user_id'] = user['id']
             session['username'] = user['username']
             return redirect(url_for('index'))
-    return render_template('login.html')
+        else:
+            error = "Credenciales incorrectas o usuario no registrado."
+            
+    return render_template('login.html', error=error)
 
 @app.route('/logout')
 def logout():
@@ -277,13 +290,11 @@ def apostar():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Verificar saldo del usuario
         cursor.execute("SELECT saldo FROM usuarios WHERE id = %s", (user_id,))
         user = cursor.fetchone()
         if not user or user['saldo'] < monto:
             return jsonify({'error': 'Saldo insuficiente'}), 400
 
-        # Obtener ronda actual
         cursor.execute("SELECT numero_ronda, fase FROM sala_live WHERE id = 1")
         sala = cursor.fetchone()
         if not sala or sala['fase'] != 'apuestas':
@@ -291,7 +302,6 @@ def apostar():
 
         ronda_actual = sala['numero_ronda']
 
-        # Descontar saldo y registrar apuesta
         nuevo_saldo = user['saldo'] - monto
         cursor.execute("UPDATE usuarios SET saldo = %s WHERE id = %s", (nuevo_saldo, user_id))
         
@@ -321,7 +331,6 @@ def iniciar_sala():
             cursor.execute("UPDATE sala_live SET sistema_activo = TRUE, hilo_activo = TRUE, numero_ronda = 0 WHERE id = 1")
             conn.commit()
             
-            # Iniciar hilo del ciclo continuo si no estaba corriendo
             hilo = threading.Thread(target=bucle_ciclo_continuo)
             hilo.daemon = True
             hilo.start()
