@@ -109,12 +109,6 @@
             font-weight: 900; 
             line-height: 1; 
             margin: 10px 0;
-            animation: pulse 0.5s ease-in-out 3;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.15); }
-            100% { transform: scale(1); }
         }
         .winner-color-badge {
             display: inline-block;
@@ -171,7 +165,7 @@
 
         <div class="menu-items">
             <button class="menu-btn" onclick="openHistorial()">📋 Mis Apuestas</button>
-            <button class="menu-btn" onclick="openPasswordModal()">Cambiar Contraseña</button>
+            <button class="menu-btn" onclick="openPasswordModal()">🔒 Cambiar Contraseña</button>
             {% if es_admin %}
             <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e; display:block;">Panel Admin Creadores</a>
             {% endif %}
@@ -231,7 +225,7 @@
     <div class="modal" id="modalHistorial">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="color: white;">Historial Personal</h3>
+                <h3 style="color: white;">📋 Historial Personal</h3>
                 <button class="close-btn" onclick="closeHistorial()">✕</button>
             </div>
             <div style="max-height: 400px; overflow-y: auto;">
@@ -270,7 +264,7 @@
     <div class="modal" id="modalPassword">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="color: white;">Cambiar Contraseña</h3>
+                <h3 style="color: white;">🔒 Cambiar Contraseña</h3>
                 <button class="close-btn" onclick="closePasswordModal()">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -521,7 +515,7 @@
                             `).join('')}
                         `;
                     } else {
-                        tabla.innerHTML = `<tr><td colspan="2" class="no-ganadores">Nadie ganó en esta ronda</td></tr>`;
+                        tabla.innerHTML = `<tr><td colspan="2" class="no-ganadores">😢 Nadie ganó en esta ronda</td></tr>`;
                     }
 
                     // Mostrar modal con animación
