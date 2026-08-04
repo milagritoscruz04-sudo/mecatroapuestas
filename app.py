@@ -12,7 +12,9 @@ app.secret_key = "mecatroapuestas_secret_key"
 
 ESP32_IP = "http://192.168.18.100"
 
-# Estado global de la sala centralizada
+# Mapa exacto de colores del tablero (0-23)
+NUMEROS_ROJOS = {1, 3, 5, 6, 8, 10, 13, 15, 17, 18, 20, 22}
+
 SALA_ESTADO = {
     "sistema_activo": False,
     "activa": False,
@@ -31,47 +33,49 @@ def get_db_connection():
     return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
 
 def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id VARCHAR(50) PRIMARY KEY,
-            username VARCHAR(100) UNIQUE,
-            password VARCHAR(100),
-            saldo REAL,
-            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS historial (
-            id SERIAL PRIMARY KEY,
-            usuario_id VARCHAR(50),
-            username VARCHAR(100),
-            monto REAL,
-            numero_elegido INTEGER,
-            color_elegido VARCHAR(50),
-            numero_ganador INTEGER,
-            color_ganador VARCHAR(50),
-            resultado VARCHAR(50),
-            monto_ganado REAL DEFAULT 0.0,
-            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
-    if not cursor.fetchone():
-        cursor.execute(
-            "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
-            ('M000', 'admin', 'admin123', 5000.0)
-        )
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id VARCHAR(50) PRIMARY KEY,
+                username VARCHAR(100) UNIQUE,
+                password VARCHAR(100),
+                saldo REAL,
+                fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS historial (
+                id SERIAL PRIMARY KEY,
+                usuario_id VARCHAR(50),
+                username VARCHAR(100),
+                monto REAL,
+                numero_elegido INTEGER,
+                color_elegido VARCHAR(50),
+                numero_ganador INTEGER,
+                color_ganador VARCHAR(50),
+                resultado VARCHAR(50),
+                monto_ganado REAL DEFAULT 0.0,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+        if not cursor.fetchone():
+            cursor.execute(
+                "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
+                ('M000', 'admin', 'admin123', 5000.0)
+            )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"[DB Init Error] {e}")
 
 init_db()
 
 def es_admin_autorizado(username):
-    admins = ['Capi admin', 'El diavlo', 'admin']
-    return username in admins
+    return username in ['Capi admin', 'El diavlo', 'admin']
 
 def generar_siguiente_id():
     conn = get_db_connection()
@@ -96,14 +100,14 @@ def generar_siguiente_id():
 def obtener_color(numero):
     if numero == 0:
         return "Verde"
-    return "Rojo" if numero % 2 != 0 else "Negro"
+    return "Rojo" if numero in NUMEROS_ROJOS else "Negro"
 
 def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
     def tarea():
         try:
-            requests.get(f"{ESP32_IP}/girar?ganador={numero_ganador}&sonido={sonido}&luces={luces}", timeout=3)
+            requests.get(f"{ESP32_IP}/girar?ganador={numero_ganador}&sonido={sonido}&luces={luces}", timeout=2)
         except Exception as e:
-            print(f"[ESP32 Comms] Aviso/Error de comunicación: {e}")
+            print(f"[ESP32 Comms Warning] {e}")
     threading.Thread(target=tarea, daemon=True).start()
 
 def obtener_resultado_ruleta():
@@ -127,16 +131,13 @@ def index():
         session.clear()
         return redirect(url_for('login_view'))
 
-    es_admin = es_admin_autorizado(session.get('username'))
-
     return render_template(
         'index.html',
         usuario=user['username'],
         user_id=user['id'],
         saldo=user['saldo'],
         historial=historial,
-        fecha_registro=user.get('fecha_registro'),
-        es_admin=es_admin
+        es_admin=es_admin_autorizado(session.get('username'))
     )
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -157,7 +158,7 @@ def login_view():
         if cursor.fetchone():
             cursor.close()
             conn.close()
-            return jsonify({'status': 'error', 'message': 'El usuario ya existe'}), 400
+            return jsonify({'status': 'error', 'message': 'El nombre de usuario ya existe'}), 400
 
         nuevo_id = generar_siguiente_id()
         cursor.execute(
@@ -216,7 +217,7 @@ def cambiar_password():
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
     if not es_admin_autorizado(session.get('username')):
-        return "Acceso denegado. Solo administradores pueden ingresar.", 403
+        return "Acceso denegado.", 403
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -229,103 +230,93 @@ def admin_panel():
 
     cursor.execute('SELECT * FROM usuarios ORDER BY id')
     usuarios = cursor.fetchall()
-    cursor.execute('SELECT * FROM historial ORDER BY id DESC LIMIT 30')
-    historial = cursor.fetchall()
     cursor.close()
     conn.close()
 
     return render_template(
         'admin.html', 
-        usuarios=usuarios, 
-        historial=historial, 
+        usuarios=usuarios,
         sonido=SALA_ESTADO["sonido"], 
         luces=SALA_ESTADO["luces"],
         sistema_activo=SALA_ESTADO["sistema_activo"]
     )
 
 def bucle_ciclo_continuo():
-    """Bucle infinito que ejecuta rondas automáticamente mientras el admin tenga la sala activa"""
+    """Ejecución continua e ininterrumpida de rondas"""
     while SALA_ESTADO["sistema_activo"]:
-        SALA_ESTADO["activa"] = True
-        SALA_ESTADO["tiempo_restante"] = 20
-        SALA_ESTADO["apuestas"] = []
-        SALA_ESTADO["numero_ronda"] += 1
-        ronda_actual = SALA_ESTADO["numero_ronda"]
+        try:
+            SALA_ESTADO["activa"] = True
+            SALA_ESTADO["tiempo_restante"] = 20
+            SALA_ESTADO["apuestas"] = []
+            SALA_ESTADO["numero_ronda"] += 1
+            ronda_actual = SALA_ESTADO["numero_ronda"]
 
-        # 1. Cuenta regresiva para recibir apuestas
-        while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
-            time.sleep(1)
-            SALA_ESTADO["tiempo_restante"] -= 1
+            # 1. Tiempo de apuestas
+            while SALA_ESTADO["tiempo_restante"] > 0 and SALA_ESTADO["sistema_activo"]:
+                time.sleep(1)
+                SALA_ESTADO["tiempo_restante"] -= 1
 
-        if not SALA_ESTADO["sistema_activo"]:
-            break
+            if not SALA_ESTADO["sistema_activo"]:
+                break
 
-        # 2. Cierre de apuestas y giro de ruleta
-        SALA_ESTADO["activa"] = False
-        numero_ganador = obtener_resultado_ruleta()
-        color_ganador = obtener_color(numero_ganador)
+            # 2. Cierre de apuestas y giro
+            SALA_ESTADO["activa"] = False
+            numero_ganador = obtener_resultado_ruleta()
+            color_ganador = obtener_color(numero_ganador)
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+            conn = get_db_connection()
+            cursor = conn.cursor()
 
-        ganadores_list = []
-        total_repartido = 0.0
+            ganadores_list = []
+            total_repartido = 0.0
 
-        for ap in SALA_ESTADO["apuestas"]:
-            # Condición de victoria: acertar número exacto
-            gano_numero = (ap['numero'] == numero_ganador)
-            gano_color = (ap['color'].lower() == color_ganador.lower()) if ap.get('color') else False
-            
-            # Pago multiplicador: 24x pleno número, 2x por color
-            monto_ganado = 0.0
-            if gano_numero:
-                monto_ganado = ap['monto'] * 24.0
-            elif gano_color and numero_ganador != 0:
-                monto_ganado = ap['monto'] * 2.0
+            for ap in SALA_ESTADO["apuestas"]:
+                gano = (ap['numero'] == numero_ganador)
+                monto_ganado = (ap['monto'] * 24.0) if gano else 0.0
 
-            gano = monto_ganado > 0
+                cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
+                user = cursor.fetchone()
 
-            cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (ap['user_id'],))
-            user = cursor.fetchone()
+                if user:
+                    nuevo_saldo = user['saldo'] + monto_ganado
+                    resultado_str = "GANASTE" if gano else "PERDISTE"
 
-            if user:
-                nuevo_saldo = user['saldo'] + monto_ganado
-                resultado_str = "GANASTE" if gano else "PERDISTE"
+                    cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
+                    cursor.execute('''
+                        INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado, monto_ganado)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str, monto_ganado))
 
-                cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, ap['user_id']))
-                cursor.execute('''
-                    INSERT INTO historial (usuario_id, username, monto, numero_elegido, color_elegido, numero_ganador, color_ganador, resultado, monto_ganado)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str, monto_ganado))
+                    if gano:
+                        ganadores_list.append({
+                            'username': ap['username'],
+                            'monto_ganado': monto_ganado
+                        })
+                        total_repartido += monto_ganado
 
-                if gano:
-                    ganadores_list.append({
-                        'username': ap['username'],
-                        'monto_ganado': monto_ganado
-                    })
-                    total_repartido += monto_ganado
+            conn.commit()
+            cursor.close()
+            conn.close()
 
-        conn.commit()
-        cursor.close()
-        conn.close()
+            SALA_ESTADO["ultimo_resultado"] = {
+                "numero_ganador": numero_ganador,
+                "color_ganador": color_ganador,
+                "ganadores": ganadores_list,
+                "total_repartido": total_repartido,
+                "numero_ronda": ronda_actual
+            }
 
-        # Guardar resultado de la ronda para mostrar en la app web
-        SALA_ESTADO["ultimo_resultado"] = {
-            "numero_ganador": numero_ganador,
-            "color_ganador": color_ganador,
-            "ganadores": ganadores_list,
-            "total_repartido": total_repartido,
-            "numero_ronda": ronda_actual
-        }
+            enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
 
-        # Enviar orden de giro al ESP32
-        enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
+            # Pausa para mostrar animación del resultado
+            tiempo_pausa = 7
+            while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
+                time.sleep(1)
+                tiempo_pausa -= 1
 
-        # Pausa de 8 segundos entre rondas para mostrar la animación y ganadores
-        tiempo_pausa = 8
-        while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
-            time.sleep(1)
-            tiempo_pausa -= 1
+        except Exception as e:
+            print(f"[Error en Bucle de Sala] {e}")
+            time.sleep(2)
 
 @app.route('/admin/abrir_sala', methods=['POST'])
 def abrir_sala_admin():
@@ -333,7 +324,7 @@ def abrir_sala_admin():
         return jsonify({'status': 'error', 'message': 'No autorizado'}), 403
 
     if SALA_ESTADO["sistema_activo"]:
-        return jsonify({'status': 'error', 'message': 'La sala ya está activa'}), 400
+        return jsonify({'status': 'error', 'message': 'La sala ya está en funcionamiento'}), 400
 
     SALA_ESTADO["sistema_activo"] = True
     threading.Thread(target=bucle_ciclo_continuo, daemon=True).start()
@@ -363,6 +354,21 @@ def configurar_efectos():
 
 @app.route('/estado_sala', methods=['GET'])
 def estado_sala():
+    # Retorna también el saldo fresco del usuario conectado
+    saldo_actual = 0.0
+    if 'user_id' in session:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT saldo FROM usuarios WHERE id = %s', (session['user_id'],))
+            row = cursor.fetchone()
+            if row:
+                saldo_actual = row['saldo']
+            cursor.close()
+            conn.close()
+        except Exception:
+            pass
+
     return jsonify({
         "sistema_activo": SALA_ESTADO["sistema_activo"],
         "activa": SALA_ESTADO["activa"],
@@ -371,13 +377,14 @@ def estado_sala():
         "ultimo_resultado": SALA_ESTADO["ultimo_resultado"],
         "sonido": SALA_ESTADO["sonido"],
         "luces": SALA_ESTADO["luces"],
-        "numero_ronda": SALA_ESTADO["numero_ronda"]
+        "numero_ronda": SALA_ESTADO["numero_ronda"],
+        "saldo_usuario": saldo_actual
     })
 
 @app.route('/apostar_sala', methods=['POST'])
 def apostar_sala():
     if 'user_id' not in session:
-        return jsonify({'status': 'error', 'message': 'Debes iniciar sesión para apostar'}), 401
+        return jsonify({'status': 'error', 'message': 'Inicia sesión para apostar'}), 401
 
     if not SALA_ESTADO["activa"]:
         return jsonify({'status': 'error', 'message': 'Las apuestas están cerradas'}), 400
@@ -388,7 +395,7 @@ def apostar_sala():
     color = data.get('color')
 
     if not (0 <= numero <= 23) or monto <= 0:
-        return jsonify({'status': 'error', 'message': 'Datos de apuesta inválidos'}), 400
+        return jsonify({'status': 'error', 'message': 'Apuesta no válida'}), 400
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -404,9 +411,8 @@ def apostar_sala():
         if ap['user_id'] == session['user_id']:
             cursor.close()
             conn.close()
-            return jsonify({'status': 'error', 'message': 'Ya realizaste una apuesta en esta ronda'}), 400
+            return jsonify({'status': 'error', 'message': 'Ya apostaste en esta ronda'}), 400
 
-    # Se le descuenta el monto apostado inmediatamente de su saldo
     nuevo_saldo = user['saldo'] - monto
     cursor.execute('UPDATE usuarios SET saldo = %s WHERE id = %s', (nuevo_saldo, session['user_id']))
     conn.commit()
