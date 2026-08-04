@@ -12,7 +12,6 @@ app.secret_key = "mecatroapuestas_secret_key"
 
 ESP32_IP = "http://192.168.18.100"
 
-# Mapa exacto de colores del tablero (0-23)
 NUMEROS_ROJOS = {1, 3, 5, 6, 8, 10, 13, 15, 17, 18, 20, 22}
 
 SALA_ESTADO = {
@@ -112,8 +111,6 @@ def enviar_a_esp32_async(numero_ganador, sonido=1, luces=1):
 
 def obtener_resultado_ruleta():
     return random.randint(0, 23)
-
-# --- RUTAS DE NAVEGACIÓN Y AUTENTICACIÓN ---
 
 @app.route('/')
 def index():
@@ -217,10 +214,7 @@ def admin_panel():
         sistema_activo=SALA_ESTADO["sistema_activo"]
     )
 
-# --- BUCLE DE JUEGO ---
-
 def bucle_ciclo_continuo():
-    """Ejecución continua de rondas"""
     while SALA_ESTADO["sistema_activo"]:
         try:
             SALA_ESTADO["activa"] = True
@@ -264,10 +258,7 @@ def bucle_ciclo_continuo():
                     ''', (ap['user_id'], ap['username'], ap['monto'], ap['numero'], ap['color'], numero_ganador, color_ganador, resultado_str, monto_ganado))
 
                     if gano:
-                        ganadores_list.append({
-                            'username': ap['username'],
-                            'monto_ganado': monto_ganado
-                        })
+                        ganadores_list.append({'username': ap['username'], 'monto_ganado': monto_ganado})
                         total_repartido += monto_ganado
 
             conn.commit()
@@ -284,16 +275,14 @@ def bucle_ciclo_continuo():
 
             enviar_a_esp32_async(numero_ganador, 1 if SALA_ESTADO["sonido"] else 0, 1 if SALA_ESTADO["luces"] else 0)
 
-            tiempo_pausa = 7
+            tiempo_pausa = 5
             while tiempo_pausa > 0 and SALA_ESTADO["sistema_activo"]:
                 time.sleep(1)
                 tiempo_pausa -= 1
 
         except Exception as e:
-            print(f"[Error en Bucle de Sala] {e}")
+            print(f"[Error en Bucle] {e}")
             time.sleep(2)
-
-# --- ENDPOINTS API Y CONTROL DE SALA ---
 
 @app.route('/api/sala/estado', methods=['GET', 'POST'])
 def api_sala_estado():
@@ -314,7 +303,7 @@ def api_sala_estado():
             SALA_ESTADO["sistema_activo"] = False
             SALA_ESTADO["activa"] = False
             SALA_ESTADO["tiempo_restante"] = 0
-            SALA_ESTADO["ultimo_resultado"] = None  # Se borra resultado al cerrar
+            SALA_ESTADO["ultimo_resultado"] = None  # Borra el resultado para que no salte popup al cerrar
 
         return jsonify({'status': 'ok', 'abierta': SALA_ESTADO["sistema_activo"]})
 
@@ -373,7 +362,7 @@ def api_actualizar_saldo():
 
 @app.route('/estado_sala', methods=['GET'])
 def estado_sala():
-    saldo_actual = 0.0
+    saldo_actual = None
     if 'user_id' in session:
         try:
             conn = get_db_connection()
