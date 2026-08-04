@@ -31,8 +31,15 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # --- RESET COMPLETO DE TABLAS EN SUPABASE ---
+        cursor.execute("DROP TABLE IF EXISTS usuarios CASCADE;")
+        cursor.execute("DROP TABLE IF EXISTS historial CASCADE;")
+        cursor.execute("DROP TABLE IF EXISTS sala_live CASCADE;")
+        cursor.execute("DROP TABLE IF EXISTS apuestas_ronda CASCADE;")
+
+        # --- CREACIÓN DESDE CERO ---
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS usuarios (
+            CREATE TABLE usuarios (
                 id VARCHAR(50) PRIMARY KEY,
                 username VARCHAR(100) UNIQUE,
                 password VARCHAR(100),
@@ -42,7 +49,7 @@ def init_db():
         ''')
 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS historial (
+            CREATE TABLE historial (
                 id SERIAL PRIMARY KEY,
                 usuario_id VARCHAR(50),
                 username VARCHAR(100),
@@ -58,7 +65,7 @@ def init_db():
         ''')
 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS sala_live (
+            CREATE TABLE sala_live (
                 id INTEGER PRIMARY KEY,
                 sistema_activo BOOLEAN DEFAULT FALSE,
                 fase VARCHAR(20) DEFAULT 'apuestas',
@@ -75,11 +82,9 @@ def init_db():
                 heartbeat TIMESTAMP
             )
         ''')
-        cursor.execute('ALTER TABLE sala_live ADD COLUMN IF NOT EXISTS heartbeat TIMESTAMP')
-        cursor.execute('ALTER TABLE sala_live ADD COLUMN IF NOT EXISTS fase VARCHAR(20) DEFAULT \'apuestas\'')
 
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS apuestas_ronda (
+            CREATE TABLE apuestas_ronda (
                 id SERIAL PRIMARY KEY,
                 numero_ronda INTEGER,
                 usuario_id VARCHAR(50),
@@ -90,36 +95,18 @@ def init_db():
             )
         ''')
 
-        cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
-        if not cursor.fetchone():
-            cursor.execute(
-                "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
-                ('M000', 'admin', 'admin123', 5000.0)
-            )
+        # Usuario administrador inicial para controlar el panel
+        cursor.execute(
+            "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
+            ('M000', 'admin', 'admin123', 5000.0)
+        )
 
-        usuarios_prueba = [
-            ('M001', 'Capi admin', 'admin123', 200.0),
-            ('M002', 'DejameApostar', 'admin123', 200.0)
-        ]
-        for uid, uname, pwd, saldo in usuarios_prueba:
-            cursor.execute("SELECT * FROM usuarios WHERE id = %s", (uid,))
-            if not cursor.fetchone():
-                cursor.execute(
-                    "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
-                    (uid, uname, pwd, saldo)
-                )
-
-        cursor.execute("SELECT id FROM sala_live WHERE id = 1")
-        if not cursor.fetchone():
-            cursor.execute("INSERT INTO sala_live (id) VALUES (1)")
-
-        cursor.execute('''
-            UPDATE sala_live SET sistema_activo = FALSE, hilo_activo = FALSE WHERE id = 1
-        ''')
+        cursor.execute("INSERT INTO sala_live (id) VALUES (1)")
 
         conn.commit()
         cursor.close()
         conn.close()
+        print("[DB Init] Base de datos reiniciada con éxito desde cero.")
     except Exception as e:
         print(f"[DB Init Error] {e}")
 
