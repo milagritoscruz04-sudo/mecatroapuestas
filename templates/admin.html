@@ -57,15 +57,18 @@
       background: #27272a;
       color: #fff;
       border: none;
-      padding: 8px 16px;
+      padding: 10px 18px;
       border-radius: 8px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.1s;
+      text-decoration: none;
+      display: inline-block;
     }
 
     .btn-back:hover {
       background: #3f3f46;
+      transform: translateY(-1px);
     }
 
     /* Bloques Principales */
@@ -94,12 +97,17 @@
     }
 
     .btn-room {
-      padding: 12px;
+      padding: 14px;
       border-radius: 8px;
       border: none;
       font-weight: 700;
       font-size: 0.95rem;
       cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-room:active {
+      transform: scale(0.98);
     }
 
     .btn-open {
@@ -112,12 +120,12 @@
       color: #fff;
     }
 
-    /* Efectos Ruleta (Toggles estilo Imagen 2) */
+    /* Efectos Ruleta (Toggles) */
     .effects-container {
       background: #111114;
       border: 1px solid #27272a;
       border-radius: 10px;
-      padding: 15px 30px;
+      padding: 18px 30px;
       display: flex;
       justify-content: space-around;
       align-items: center;
@@ -126,20 +134,24 @@
     .toggle-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 15px;
+      cursor: pointer;
     }
 
     .toggle-label {
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      user-select: none;
+      cursor: pointer;
     }
 
-    /* Switch Styling */
+    /* Switch Interactivo */
     .switch {
       position: relative;
       display: inline-block;
-      width: 50px;
-      height: 26px;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
     }
 
     .switch input {
@@ -160,8 +172,8 @@
     .slider:before {
       position: absolute;
       content: "";
-      height: 18px;
-      width: 18px;
+      height: 20px;
+      width: 20px;
       left: 4px;
       bottom: 4px;
       background-color: white;
@@ -177,7 +189,7 @@
       transform: translateX(24px);
     }
 
-    /* Tabla de Apuestas y Usuarios */
+    /* Tabla */
     .table-responsive {
       overflow-x: auto;
     }
@@ -207,7 +219,6 @@
       font-weight: bold;
     }
 
-    /* Badges de Colores y Apuestas */
     .badge {
       padding: 4px 8px;
       border-radius: 6px;
@@ -220,7 +231,6 @@
     .badge-black { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
     .badge-green { background: #166534; color: #86efac; }
 
-    /* Inputs de Recarga */
     .reload-box {
       display: flex;
       gap: 6px;
@@ -244,10 +254,11 @@
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
+      transition: background 0.2s;
     }
 
     .btn-save:hover {
-      opacity: 0.9;
+      background: #dc2626;
     }
   </style>
 </head>
@@ -258,7 +269,8 @@
   <!-- Header -->
   <div class="header-panel">
     <div class="header-title">👑 PANEL ADMINISTRACIÓN CREADORES</div>
-    <button class="btn-back">← Volver al Juego</button>
+    <!-- Redirección directa a index.html -->
+    <a href="index.html" class="btn-back">← Volver al Juego</a>
   </div>
 
   <!-- Control de Sala y Efectos -->
@@ -266,31 +278,31 @@
     <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
     
     <div class="room-controls">
-      <button class="btn-room btn-open">🚀 ABRIR SALA (Loop Continuo)</button>
-      <button class="btn-room btn-close">🔴 CERRAR SALA</button>
+      <button class="btn-room btn-open" onclick="controlarSala(true)">🚀 ABRIR SALA (Loop Continuo)</button>
+      <button class="btn-room btn-close" onclick="controlarSala(false)">🔴 CERRAR SALA</button>
     </div>
 
-    <!-- Toggles horizontales como la imagen 2 -->
+    <!-- Switches con ID para JS -->
     <div class="effects-container">
-      <div class="toggle-group">
+      <label class="toggle-group" for="toggle-sonido">
         <span class="toggle-label">Sonido</span>
-        <label class="switch">
-          <input type="checkbox" checked>
+        <span class="switch">
+          <input type="checkbox" id="toggle-sonido" checked onchange="toggleEfecto('Sonido', this.checked)">
           <span class="slider"></span>
-        </label>
-      </div>
+        </span>
+      </label>
 
-      <div class="toggle-group">
+      <label class="toggle-group" for="toggle-led">
         <span class="toggle-label">Luces LED</span>
-        <label class="switch">
-          <input type="checkbox" checked>
+        <span class="switch">
+          <input type="checkbox" id="toggle-led" checked onchange="toggleEfecto('Luces LED', this.checked)">
           <span class="slider"></span>
-        </label>
-      </div>
+        </span>
+      </label>
     </div>
   </div>
 
-  <!-- Tabla Detallada de Usuarios y Apuestas -->
+  <!-- Tabla Detallada -->
   <div class="section-card">
     <div class="section-title">👤 Control de Apuestas y Saldos de Usuarios</div>
     
@@ -315,11 +327,11 @@
             <td>S/ 50.00</td>
             <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
             <td>N° <strong>7</strong> / <span class="badge badge-red">ROJO</span></td>
-            <td class="balance-text">S/ 5000.0</td>
+            <td class="balance-text" id="saldo-M000">S/ 5000.0</td>
             <td>
               <div class="reload-box">
-                <input type="number" class="input-amount" value="5000.0">
-                <button class="btn-save">Guardar</button>
+                <input type="number" class="input-amount" id="input-M000" value="5000.0">
+                <button class="btn-save" onclick="guardarSaldo('M000', 'admin')">Guardar</button>
               </div>
             </td>
           </tr>
@@ -331,11 +343,11 @@
             <td>S/ 10.00</td>
             <td>N° <strong>14</strong> / <span class="badge badge-black">NEGRO</span></td>
             <td>N° <strong>0</strong> / <span class="badge badge-green">VERDE</span></td>
-            <td class="balance-text">S/ 20.0</td>
+            <td class="balance-text" id="saldo-M001">S/ 20.0</td>
             <td>
               <div class="reload-box">
-                <input type="number" class="input-amount" value="20.0">
-                <button class="btn-save">Guardar</button>
+                <input type="number" class="input-amount" id="input-M001" value="20.0">
+                <button class="btn-save" onclick="guardarSaldo('M001', 'Capi admin')">Guardar</button>
               </div>
             </td>
           </tr>
@@ -347,11 +359,11 @@
             <td>S/ 100.00</td>
             <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
             <td>N° <strong>23</strong> / <span class="badge badge-red">ROJO</span></td>
-            <td class="balance-text">S/ 200.0</td>
+            <td class="balance-text" id="saldo-M002">S/ 200.0</td>
             <td>
               <div class="reload-box">
-                <input type="number" class="input-amount" value="200.0">
-                <button class="btn-save">Guardar</button>
+                <input type="number" class="input-amount" id="input-M002" value="200.0">
+                <button class="btn-save" onclick="guardarSaldo('M002', 'DejameApostar')">Guardar</button>
               </div>
             </td>
           </tr>
@@ -361,6 +373,44 @@
   </div>
 
 </div>
+
+<!-- Funciones en JavaScript -->
+<script>
+  // 1. Redirección Volver al Juego
+  // (Manejado directamente mediante la etiqueta <a href="index.html">)
+
+  // 2. Control de Abrir / Cerrar Sala
+  function controlarSala(abrir) {
+    if (abrir) {
+      alert("🚀 Sala ABIERTA. El loop continuo de la ruleta ha iniciado.");
+    } else {
+      alert("🔴 Sala CERRADA. Las apuestas han sido congeladas.");
+    }
+  }
+
+  // 3. Activar / Desactivar Sonido y Luces (Switches)
+  function toggleEfecto(tipo, estado) {
+    const accion = estado ? "ACTIVADO" : "DESACTIVADO";
+    console.log(`[ESP32]: ${tipo} -> ${accion}`);
+  }
+
+  // 4. Guardar y actualizar saldo en tiempo real
+  function guardarSaldo(idUsuario, nombreUsuario) {
+    const input = document.getElementById(`input-${idUsuario}`);
+    const elementoSaldo = document.getElementById(`saldo-${idUsuario}`);
+    
+    const nuevoMonto = parseFloat(input.value);
+
+    if (isNaN(nuevoMonto) || nuevoMonto < 0) {
+      alert("⚠️ Ingresa un monto válido.");
+      return;
+    }
+
+    // Actualiza el texto en la tabla al instante
+    elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
+    alert(`✅ Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
+  }
+</script>
 
 </body>
 </html>
