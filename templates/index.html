@@ -7,77 +7,83 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-body { 
-    background-image: linear-gradient(rgba(9, 9, 11, 0.8), rgba(9, 9, 11, 0.85)), url("{{ url_for('static', filename='fondoindex.png') }}");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-    color: #f8fafc; 
-    padding: 15px; 
-    min-height: 100vh;
-}
-        
-        .header { display: flex; justify-content: space-between; align-items: center; max-width: 650px; margin: 0 auto 15px; padding: 14px 20px; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(10px); border-radius: 14px; border: 1px solid #27272a; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.15); }
+        body { 
+            background-image: linear-gradient(rgba(9, 9, 11, 0.85), rgba(9, 9, 11, 0.9)), url("{{ url_for('static', filename='fondoindex.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: #f8fafc; 
+            padding: 15px; 
+            min-height: 100vh;
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: center; max-width: 700px; margin: 0 auto 15px; padding: 14px 20px; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(10px); border-radius: 14px; border: 1px solid #27272a; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.15); }
         .burger-btn { background: none; border: none; color: #f8fafc; font-size: 24px; cursor: pointer; }
         .brand-title { font-size: 20px; font-weight: 900; color: #ef4444; letter-spacing: 1.5px; text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
 
+        /* Menú Lateral */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 99; backdrop-filter: blur(4px); }
         .sidebar { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #18181b; z-index: 100; transition: left 0.3s ease; padding: 25px 20px; border-right: 1px solid #27272a; display: flex; flex-direction: column; }
         .sidebar.active { left: 0; }
         .sidebar-overlay.active { display: block; }
-        
-        .profile-card { background: #09090b; padding: 20px; border-radius: 12px; border: 1px solid #27272a; text-align: center; margin-bottom: 25px; }
+
+        .profile-card { background: #09090b; padding: 20px; border-radius: 12px; border: 1px solid #27272a; text-align: center; margin-bottom: 20px; }
         .avatar { width: 65px; height: 65px; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; font-size: 26px; font-weight: bold; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; border: 2px solid #ef4444; }
-        .menu-btn { width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #cbd5e1; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 8px; margin-bottom: 8px; }
+        .menu-btn { width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #cbd5e1; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; margin-bottom: 8px; transition: 0.2s; }
         .menu-btn:hover { background: #27272a; color: #ef4444; }
         .logout-link { color: #ef4444; text-decoration: none; font-weight: 600; padding: 12px; display: block; text-align: center; border: 1px solid #ef4444; border-radius: 8px; margin-top: auto; }
 
-        .mode-tabs { display: flex; max-width: 650px; margin: 0 auto 15px; gap: 10px; }
-        .tab-btn { flex: 1; padding: 14px; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(10px); border: 1px solid #27272a; color: #a1a1aa; font-weight: 700; border-radius: 12px; cursor: pointer; text-align: center; font-size: 14px; transition: 0.2s; }
-        .tab-btn.active { background: #dc2626; color: white; border-color: #ef4444; box-shadow: 0 0 12px rgba(220, 38, 38, 0.4); }
+        /* Tarjeta Principal */
+        .card { max-width: 700px; margin: 0 auto; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.2); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        
+        /* Bar de Estado de Sala */
+        .status-banner { display: flex; justify-content: space-between; align-items: center; background: rgba(9, 9, 11, 0.9); padding: 12px 18px; border-radius: 12px; border: 1px solid #27272a; margin-bottom: 15px; }
+        .status-indicator { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 14px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+        .dot.closed { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .timer-box { font-size: 22px; font-weight: 900; color: #f59e0b; letter-spacing: 1px; }
 
-        .card { max-width: 650px; margin: 0 auto; background: rgba(24, 24, 27, 0.85); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.2); padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-        .saldo-box { text-align: center; background: rgba(9, 9, 11, 0.8); padding: 18px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #27272a; }
+        .saldo-box { text-align: center; background: rgba(9, 9, 11, 0.8); padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #27272a; }
         .saldo-box label { font-size: 11px; color: #a1a1aa; letter-spacing: 1.5px; font-weight: bold; }
-        .saldo-box .monto { font-size: 34px; color: #22c55e; font-weight: 900; text-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
+        .saldo-box .monto { font-size: 32px; color: #22c55e; font-weight: 900; text-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
 
-        .section-title { font-size: 12px; color: #a1a1aa; margin: 15px 0 8px; font-weight: 800; letter-spacing: 1px; }
+        .section-title { font-size: 12px; color: #a1a1aa; margin: 15px 0 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
 
-        .color-selector { display: flex; gap: 10px; margin-bottom: 15px; }
-        .color-selector label { flex: 1; text-align: center; padding: 14px 5px; background: rgba(9, 9, 11, 0.8); border: 2px solid #27272a; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 14px; transition: 0.2s; }
-        .color-selector input { display: none; }
-        .color-selector label.rojo { color: #ef4444; }
-        .color-selector label.negro { color: #e4e4e7; }
-        .color-selector label.verde { color: #22c55e; }
-        .color-selector input:checked + label.rojo { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
-        .color-selector input:checked + label.negro { border-color: #a1a1aa; background: rgba(255, 255, 255, 0.15); }
-        .color-selector input:checked + label.verde { border-color: #22c55e; background: rgba(34, 197, 94, 0.2); }
+        /* TABLERO RULETA (0 AL 23) */
+        .ruleta-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 15px; }
+        .num-cell { height: 48px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; user-select: none; }
+        .num-cell.verde { background: #15803d; color: white; grid-column: span 6; height: 42px; }
+        .num-cell.rojo { background: #991b1b; color: white; }
+        .num-cell.negro { background: #18181b; color: white; border-color: #3f3f46; }
+        
+        .num-cell:hover { transform: scale(1.05); }
+        .num-cell.selected { border-color: #f59e0b !important; box-shadow: 0 0 12px #f59e0b; transform: scale(1.05); }
 
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        select, input[type="number"] { width: 100%; padding: 12px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 8px; color: white; font-size: 15px; outline: none; }
+        /* Chips / Fichas Rápidas */
+        .chips-container { display: flex; gap: 8px; margin-bottom: 15px; }
+        .chip-btn { flex: 1; padding: 8px; background: #27272a; border: 1px solid #3f3f46; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; text-align: center; font-size: 13px; }
+        .chip-btn:hover { background: #dc2626; border-color: #ef4444; }
 
-        .effects-box { display: flex; justify-content: space-around; background: rgba(9, 9, 11, 0.8); padding: 12px; border-radius: 10px; border: 1px solid #27272a; margin-top: 15px; }
-        .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #27272a; transition: .3s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #dc2626; }
-        input:checked + .slider:before { transform: translateX(20px); }
+        input[type="number"] { width: 100%; padding: 14px; background: rgba(9, 9, 11, 0.8); border: 1px solid #27272a; border-radius: 10px; color: white; font-size: 16px; outline: none; }
 
-        .btn-action { width: 100%; padding: 16px; background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); border: none; border-radius: 10px; color: white; font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 18px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); }
-        .btn-secondary { width: 100%; padding: 14px; background: #27272a; border: 1px solid #ef4444; border-radius: 10px; color: #ef4444; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 15px; }
+        .btn-action { width: 100%; padding: 16px; background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%); border: none; border-radius: 10px; color: white; font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); transition: 0.2s; }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 
+        /* Tabla de Apuestas en Vivo */
         .mesa-box { background: rgba(9, 9, 11, 0.8); border-radius: 10px; border: 1px solid #27272a; padding: 15px; margin-top: 20px; }
         .mesa-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #18181b; font-size: 13px; }
 
-        #resultado { text-align: center; margin-top: 15px; min-height: 48px; padding: 12px; background: rgba(9, 9, 11, 0.8); border-radius: 8px; font-size: 15px; border: 1px dashed #27272a; display: flex; align-items: center; justify-content: center; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 101; justify-content: center; align-items: center; padding: 15px; }
-        .modal-content { background: #18181b; border-radius: 16px; border: 1px solid #27272a; padding: 20px; width: 100%; max-width: 550px; max-height: 80vh; overflow-y: auto; }
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 101; justify-content: center; align-items: center; padding: 15px; backdrop-filter: blur(5px); }
+        .modal-content { background: #18181b; border-radius: 16px; border: 1px solid #27272a; padding: 22px; width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #27272a; padding-bottom: 10px; }
-        .close-btn { background: none; border: none; color: #a1a1aa; font-size: 20px; cursor: pointer; }
+        .close-btn { background: none; border: none; color: #a1a1aa; font-size: 22px; cursor: pointer; }
+
+        /* Modal Ganador Gigante */
+        .winner-display { text-align: center; padding: 20px 0; }
+        .winner-number { font-size: 80px; font-weight: 900; line-height: 1; margin: 15px 0; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
+        .winner-color { font-size: 18px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 10px; text-align: center; border-bottom: 1px solid #27272a; }
@@ -94,11 +100,7 @@ body {
         <div style="width: 24px;"></div>
     </div>
 
-    <div class="mode-tabs">
-        <div class="tab-btn active" id="tabInd" onclick="cambiarModo('individual')">👤 INDIVIDUAL</div>
-        <div class="tab-btn" id="tabSala" onclick="cambiarModo('sala')">👥 SALA MULTIJUGADOR</div>
-    </div>
-
+    <!-- Menú Lateral -->
     <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
     <div class="sidebar" id="sidebar">
         <div class="profile-card">
@@ -109,7 +111,8 @@ body {
 
         <div class="menu-items">
             <button class="menu-btn" onclick="openHistorial()">📋 Mis apuestas (Historial)</button>
-            {% if usuario in ['Capi admin', 'El diavlo'] %}
+            <button class="menu-btn" onclick="openPasswordModal()">🔒 Cambiar Contraseña</button>
+            {% if es_admin %}
             <a href="/admin" class="menu-btn" style="text-decoration:none; color:#22c55e; display:block;">Panel Admin Creadores</a>
             {% endif %}
         </div>
@@ -118,73 +121,59 @@ body {
     </div>
 
     <div class="card">
+        <!-- Estado de la Sala -->
+        <div class="status-banner">
+            <div class="status-indicator">
+                <div class="dot" id="sala_dot"></div>
+                <span id="sala_estado_txt">CONECTANDO...</span>
+            </div>
+            <div class="timer-box" id="timer">00s</div>
+        </div>
+
+        <!-- Saldo del Usuario -->
         <div class="saldo-box">
             <label>MI SALDO DISPONIBLE</label>
             <div class="monto">S/ <span id="saldo">{{ saldo }}</span></div>
         </div>
 
-        <div class="section-title">1. SELECCIONA COLOR</div>
-        <div class="color-selector">
-            <input type="radio" name="color" id="c_rojo" value="Rojo" checked onchange="actualizarNumeros()">
-            <label for="c_rojo" class="rojo">🔴 Rojo</label>
-            
-            <input type="radio" name="color" id="c_negro" value="Negro" onchange="actualizarNumeros()">
-            <label for="c_negro" class="negro">⚫ Negro</label>
-            
-            <input type="radio" name="color" id="c_verde" value="Verde" onchange="actualizarNumeros()">
-            <label for="c_verde" class="verde">🟢 Verde</label>
+        <!-- Tablero de Selección (0 al 23) -->
+        <div class="section-title">1. ELIGE UN NÚMERO DEL TABLERO (0 - 23)</div>
+        <div class="ruleta-grid">
+            <div class="num-cell verde selected" onclick="seleccionarNumero(0, 'Verde', this)">0 VERDE</div>
+            <script>
+                // Generar los números del 1 al 23 (Impares = Rojo, Pares = Negro)
+                for (let i = 1; i <= 23; i++) {
+                    const color = (i % 2 !== 0) ? 'rojo' : 'negro';
+                    const colorNombre = (i % 2 !== 0) ? 'Rojo' : 'Negro';
+                    document.write(`<div class="num-cell ${color}" onclick="seleccionarNumero(${i}, '${colorNombre}', this)">${i}</div>`);
+                }
+            </script>
         </div>
 
-        <div class="controls">
-            <div>
-                <div class="section-title" style="margin-top:0;">2. NÚMERO</div>
-                <select id="numero"></select>
-            </div>
-            <div>
-                <div class="section-title" style="margin-top:0;">3. MONTO</div>
-                <input type="number" id="apuesta" placeholder="Ej: 20">
-            </div>
+        <!-- Fichas de Apuesta -->
+        <div class="section-title">2. SELECCIONA O INGRESA EL MONTO</div>
+        <div class="chips-container">
+            <button class="chip-btn" onclick="setMonto(5)">+ S/ 5</button>
+            <button class="chip-btn" onclick="setMonto(10)">+ S/ 10</button>
+            <button class="chip-btn" onclick="setMonto(20)">+ S/ 20</button>
+            <button class="chip-btn" onclick="setMonto(50)">+ S/ 50</button>
+        </div>
+        <input type="number" id="monto_apuesta" placeholder="Ejemplo: 20" min="1">
+
+        <!-- Resumen de Apuesta Elegida -->
+        <div style="margin-top: 15px; font-size: 13px; color: #cbd5e1; text-align: center;">
+            Seleccionado: <b id="lbl_numero" style="color: #22c55e;">0 (Verde)</b>
         </div>
 
-        <div id="seccion_individual">
-            <div class="section-title">EFECTOS RULETA</div>
-            <div class="effects-box">
-                <div class="toggle-item">
-                    <span>Sonido</span>
-                    <label class="switch">
-                        <input type="checkbox" id="efecto_sonido" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="toggle-item">
-                    <span>Luces LED</span>
-                    <label class="switch">
-                        <input type="checkbox" id="efecto_luces" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+        <button class="btn-action" id="btn_apostar" onclick="enviarApuesta()">🎲 CONFIRMAR Y APOSTAR</button>
+
+        <!-- Apuestas Registradas en la Ronda Actual -->
+        <div class="mesa-box">
+            <div style="font-size: 12px; font-weight: bold; color: #ef4444; margin-bottom: 10px;">👥 APUESTAS EN ESTA RONDA:</div>
+            <div id="lista_apuestas">
+                <i style="color: #a1a1aa; font-size: 13px;">No hay apuestas registradas aún.</i>
             </div>
-            <button class="btn-action" onclick="jugarIndividual()">🎲 APOSTAR Y GIRAR RULETA</button>
         </div>
-
-        <div id="seccion_sala" style="display: none;">
-            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; padding: 10px; border-radius: 8px; font-size: 12px; margin-top: 15px; color: #f8fafc; text-align: center;">
-                ⚡ <b>SALA GRUPAL:</b> Los efectos físicos de la ruleta están <b>ACTIVADOS</b> para la mesa.
-            </div>
-
-            <button class="btn-secondary" onclick="registrarEnMesa()">➕ REGISTRAR MI APUESTA EN LA MESA</button>
-
-            <div class="mesa-box">
-                <div style="font-size: 12px; font-weight: bold; color: #ef4444; margin-bottom: 10px;">👥 APUESTAS EN MESA:</div>
-                <div id="lista_apuestas">
-                    <i style="color: #a1a1aa; font-size: 13px;">No hay apuestas registradas en la mesa.</i>
-                </div>
-            </div>
-
-            <button class="btn-action" onclick="girarParaTodos()">🎲 GIRAR RULETA PARA TODOS</button>
-        </div>
-
-        <div id="resultado">Selecciona tus opciones para comenzar.</div>
     </div>
 
     <!-- Modal Historial -->
@@ -197,7 +186,7 @@ body {
             <table>
                 <thead>
                     <tr>
-                        <th>Elegido</th>
+                        <th>N° Elegido</th>
                         <th>Color</th>
                         <th>Monto</th>
                         <th>Ganador</th>
@@ -219,162 +208,178 @@ body {
         </div>
     </div>
 
+    <!-- Modal Cambiar Contraseña -->
+    <div class="modal" id="modalPassword">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color: white;">🔒 Cambiar Contraseña</h3>
+                <button class="close-btn" onclick="closePasswordModal()">✕</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="password" id="pw_actual" placeholder="Contraseña actual">
+                <input type="password" id="pw_nueva" placeholder="Nueva contraseña">
+                <button class="btn-action" onclick="guardarNuevaPassword()" style="margin-top: 5px;">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Anuncio Ganador Gigante -->
+    <div class="modal" id="modalGanador">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color: #f59e0b; letter-spacing: 1px;">🎉 ¡RESULTADO DE LA RONDA! 🎉</h2>
+            <div class="winner-display">
+                <div class="winner-number" id="win_num">0</div>
+                <div class="winner-color" id="win_color" style="color: #22c55e;">VERDE</div>
+            </div>
+            <div id="win_resumen" style="margin-bottom: 20px; font-size: 14px; color: #cbd5e1;"></div>
+            <button class="btn-action" onclick="closeGanadorModal()">CONTINUAR</button>
+        </div>
+    </div>
+
     <script>
-        const numerosPorColor = {
-            'Verde': [0],
-            'Negro': [8, 23, 5, 2, 7, 3, 4, 9, 15, 14, 20, 13],
-            'Rojo': [10, 16, 18, 12, 21, 22, 19, 1, 11, 17, 6]
-        };
-
-        function actualizarNumeros() {
-            const colorSeleccionado = document.querySelector('input[name="color"]:checked').value;
-            const selectNumero = document.getElementById("numero");
-            selectNumero.innerHTML = "";
-
-            numerosPorColor[colorSeleccionado].forEach(num => {
-                const opt = document.createElement("option");
-                opt.value = num;
-                opt.textContent = num;
-                selectNumero.appendChild(opt);
-            });
-        }
-        actualizarNumeros();
+        let numeroSeleccionado = 0;
+        let colorSeleccionado = 'Verde';
+        let ultimaRondaProcesada = -1;
 
         function toggleMenu() {
             document.getElementById("sidebar").classList.toggle("active");
             document.getElementById("overlay").classList.toggle("active");
         }
+
         function openHistorial() { toggleMenu(); document.getElementById("modalHistorial").style.display = "flex"; }
         function closeHistorial() { document.getElementById("modalHistorial").style.display = "none"; }
 
-        let modoActual = 'individual';
+        function openPasswordModal() { toggleMenu(); document.getElementById("modalPassword").style.display = "flex"; }
+        function closePasswordModal() { document.getElementById("modalPassword").style.display = "none"; }
 
-        function cambiarModo(modo) {
-            modoActual = modo;
-            if (modo === 'individual') {
-                document.getElementById("tabInd").classList.add("active");
-                document.getElementById("tabSala").classList.remove("active");
-                document.getElementById("seccion_individual").style.display = "block";
-                document.getElementById("seccion_sala").style.display = "none";
+        function closeGanadorModal() { document.getElementById("modalGanador").style.display = "none"; }
+
+        function seleccionarNumero(num, color, element) {
+            numeroSeleccionado = num;
+            colorSeleccionado = color;
+            document.querySelectorAll('.num-cell').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            document.getElementById("lbl_numero").innerText = `${num} (${color})`;
+        }
+
+        function setMonto(val) {
+            const input = document.getElementById("monto_apuesta");
+            const actual = parseFloat(input.value) || 0;
+            input.value = actual + val;
+        }
+
+        async function guardarNuevaPassword() {
+            const actual = document.getElementById("pw_actual").value;
+            const nueva = document.getElementById("pw_nueva").value;
+
+            if (!actual || !nueva) return alert("Completa todos los campos");
+
+            const res = await fetch('/cambiar_password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ actual, nueva })
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                alert(data.message);
+                closePasswordModal();
+                document.getElementById("pw_actual").value = "";
+                document.getElementById("pw_nueva").value = "";
             } else {
-                document.getElementById("tabSala").classList.add("active");
-                document.getElementById("tabInd").classList.remove("active");
-                document.getElementById("seccion_individual").style.display = "none";
-                document.getElementById("seccion_sala").style.display = "block";
-                cargarEstadoMesa();
+                alert(data.message);
             }
         }
 
-        function agregarFilaHistorial(elegido, colorElegido, monto, numGanador, colorGanador, resultado) {
-            const tbody = document.getElementById("historial-body");
-            const esGanador = resultado === 'GANASTE';
-            const claseResultado = esGanador ? 'win' : 'loss';
-            
-            const nuevaFila = document.createElement('tr');
-            nuevaFila.innerHTML = `
-                <td>${elegido}</td>
-                <td>${colorElegido}</td>
-                <td>S/ ${monto}</td>
-                <td>${numGanador} (${colorGanador})</td>
-                <td class="${claseResultado}">${resultado}</td>
-            `;
-            
-            tbody.insertBefore(nuevaFila, tbody.firstChild);
-        }
+        async function enviarApuesta() {
+            const monto = parseFloat(document.getElementById("monto_apuesta").value);
+            if (!monto || monto <= 0) return alert("Ingrese un monto válido");
 
-        async function jugarIndividual() {
-            const apuesta = parseFloat(document.getElementById("apuesta").value);
-            const numero = parseInt(document.getElementById("numero").value);
-            const color = document.querySelector('input[name="color"]:checked').value;
-            const sonido = document.getElementById("efecto_sonido").checked;
-            const luces = document.getElementById("efecto_luces").checked;
+            const btn = document.getElementById("btn_apostar");
+            btn.disabled = true;
 
-            if (!apuesta || apuesta <= 0) return alert("Ingrese un monto válido");
-
-            document.getElementById("resultado").innerHTML = " <i>GIRANDO RULETA FÍSICA...</i>";
-
-            const res = await fetch('/apostar_individual', {
+            const res = await fetch('/apostar_sala', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ monto: apuesta, numero: numero, color: color, sonido: sonido, luces: luces })
+                body: JSON.stringify({ monto, numero: numeroSeleccionado, color: colorSeleccionado })
             });
 
             const data = await res.json();
             if (data.status === 'ok') {
                 document.getElementById("saldo").innerText = data.nuevo_saldo;
-                const resultClass = data.resultado === 'GANASTE' ? 'win' : 'loss';
-                document.getElementById("resultado").innerHTML = 
-                    `Salió: <b>${data.numero_ganador} (${data.color_ganador})</b> | <span class="${resultClass}">¡${data.resultado}!</span>`;
-                
-                agregarFilaHistorial(numero, color, apuesta, data.numero_ganador, data.color_ganador, data.resultado);
-
+                alert("¡Apuesta registrada con éxito!");
             } else {
                 alert(data.message);
-                document.getElementById("resultado").innerText = "Error en la apuesta.";
+                btn.disabled = false;
             }
         }
 
-        function renderMesa(apuestas) {
-            const contenedor = document.getElementById("lista_apuestas");
-            if (!apuestas || apuestas.length === 0) {
-                contenedor.innerHTML = '<i style="color: #a1a1aa; font-size: 13px;">No hay apuestas en la mesa aún.</i>';
-                return;
+        async function actualizarEstado() {
+            try {
+                const res = await fetch('/estado_sala');
+                const state = await res.json();
+
+                const dot = document.getElementById("sala_dot");
+                const txt = document.getElementById("sala_estado_txt");
+                const timer = document.getElementById("timer");
+                const btn = document.getElementById("btn_apostar");
+
+                if (!state.sistema_activo) {
+                    dot.className = "dot closed";
+                    txt.innerText = "SALA CERRADA";
+                    timer.innerText = "--";
+                    btn.disabled = true;
+                } else if (state.activa) {
+                    dot.className = "dot";
+                    txt.innerText = `SALA ABIERTA (Ronda #${state.numero_ronda})`;
+                    timer.innerText = `${state.tiempo_restante}s`;
+                    btn.disabled = false;
+                } else {
+                    dot.className = "dot closed";
+                    txt.innerText = "GIRANDO RULETA FÍSICA...";
+                    timer.innerText = "0s";
+                    btn.disabled = true;
+                }
+
+                // Actualizar lista de apuestas
+                const contenedorApuestas = document.getElementById("lista_apuestas");
+                if (!state.apuestas || state.apuestas.length === 0) {
+                    contenedorApuestas.innerHTML = '<i style="color: #a1a1aa; font-size: 13px;">No hay apuestas en esta ronda.</i>';
+                } else {
+                    contenedorApuestas.innerHTML = state.apuestas.map(a => `
+                        <div class="mesa-item">
+                            <span>👤 <b>${a.username}</b></span>
+                            <span>S/ ${a.monto} al <b>${a.numero} (${a.color})</b></span>
+                        </div>
+                    `).join('');
+                }
+
+                // Popup de Ganador cuando termina la ronda
+                if (state.ultimo_resultado && state.ultimo_resultado.numero_ronda !== ultimaRondaProcesada) {
+                    ultimaRondaProcesada = state.ultimo_resultado.numero_ronda;
+                    
+                    const numWin = state.ultimo_resultado.numero_ganador;
+                    const colWin = state.ultimo_resultado.color_ganador;
+                    
+                    document.getElementById("win_num").innerText = numWin;
+                    const elColor = document.getElementById("win_color");
+                    elColor.innerText = colWin.toUpperCase();
+                    elColor.style.color = colWin === 'Verde' ? '#22c55e' : (colWin === 'Rojo' ? '#ef4444' : '#f8fafc');
+
+                    const totalG = state.ultimo_resultado.ganadores.length;
+                    const totalMonto = state.ultimo_resultado.total_repartido;
+                    document.getElementById("win_resumen").innerHTML = 
+                        `<b>${totalG} jugador(es)</b> ganaron un total de <b style="color:#22c55e;">S/ ${totalMonto}</b> en esta ronda.`;
+
+                    document.getElementById("modalGanador").style.display = "flex";
+                }
+
+            } catch (err) {
+                console.error("Error al actualizar estado:", err);
             }
-            contenedor.innerHTML = apuestas.map(a => `
-                <div class="mesa-item">
-                    <span>👤 <b>${a.username}</b></span>
-                    <span>S/ ${a.monto} a <b>${a.color} (${a.numero})</b></span>
-                </div>
-            `).join('');
         }
 
-        async function cargarEstadoMesa() {
-            if (modoActual !== 'sala') return;
-            const res = await fetch('/obtener_ronda');
-            const data = await res.json();
-            renderMesa(data.apuestas_ronda);
-        }
-        
-        setInterval(cargarEstadoMesa, 2000);
-
-        async function registrarEnMesa() {
-            const apuesta = parseFloat(document.getElementById("apuesta").value);
-            const numero = parseInt(document.getElementById("numero").value);
-            const color = document.querySelector('input[name="color"]:checked').value;
-
-            if (!apuesta || apuesta <= 0) return alert("Ingrese un monto válido");
-
-            const res = await fetch('/registrar_apuesta_sala', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ monto: apuesta, numero: numero, color: color })
-            });
-
-            const data = await res.json();
-            if (data.status === 'ok') {
-                renderMesa(data.apuestas_ronda);
-                document.getElementById("resultado").innerText = "¡Apuesta registrada en la mesa!";
-            } else {
-                alert(data.message);
-            }
-        }
-
-        async function girarParaTodos() {
-            document.getElementById("resultado").innerHTML = "🎰 <i>GIRANDO RULETA FÍSICA PARA TODOS...</i>";
-
-            const res = await fetch('/girar_sala', { method: 'POST' });
-            const data = await res.json();
-
-            if (data.status === 'ok') {
-                document.getElementById("resultado").innerHTML = 
-                    `Salió el número: <b>${data.numero_ganador} (${data.color_ganador})</b> 🎉 ¡Cargando saldos!`;
-                
-                setTimeout(() => { location.reload(); }, 2500);
-            } else {
-                alert(data.message);
-                document.getElementById("resultado").innerText = "Error o no hay apuestas en mesa.";
-            }
-        }
+        setInterval(actualizarEstado, 1000);
+        actualizarEstado();
     </script>
 </body>
 </html>
