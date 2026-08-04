@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Administración</title>
+  <title>Panel de Administración - MECATROAPUESTAS</title>
   <style>
     :root {
       --bg-dark: #0f0f12;
@@ -15,12 +15,14 @@
       --text-muted: #a1a1aa;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       background-color: var(--bg-dark);
       color: var(--text-main);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
       padding: 20px;
+      min-height: 100vh;
     }
 
     .admin-container {
@@ -43,7 +45,7 @@
 
     .header-title {
       font-weight: 800;
-      color: #ef4444;
+      color: var(--accent-red);
       letter-spacing: 0.5px;
       font-size: 1.1rem;
       display: flex;
@@ -76,11 +78,17 @@
       padding: 20px;
     }
 
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
     .section-title {
       color: #f59e0b;
       font-size: 0.95rem;
       font-weight: 700;
-      margin-bottom: 15px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -102,19 +110,9 @@
       transition: opacity 0.2s, transform 0.1s;
     }
 
-    .btn-room:active {
-      transform: scale(0.98);
-    }
-
-    .btn-open {
-      background: var(--accent-green);
-      color: #000;
-    }
-
-    .btn-close {
-      background: var(--accent-red);
-      color: #fff;
-    }
+    .btn-room:active { transform: scale(0.98); }
+    .btn-open { background: var(--accent-green); color: #000; }
+    .btn-close { background: var(--accent-red); color: #fff; }
 
     .effects-container {
       background: #111114;
@@ -148,11 +146,7 @@
       cursor: pointer;
     }
 
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+    .switch input { opacity: 0; width: 0; height: 0; }
 
     .slider {
       position: absolute;
@@ -175,17 +169,10 @@
       border-radius: 50%;
     }
 
-    input:checked + .slider {
-      background-color: var(--accent-red);
-    }
+    input:checked + .slider { background-color: var(--accent-red); }
+    input:checked + .slider:before { transform: translateX(24px); }
 
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
-
-    .table-responsive {
-      overflow-x: auto;
-    }
+    .table-responsive { overflow-x: auto; }
 
     table {
       width: 100%;
@@ -224,10 +211,7 @@
     .badge-black { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
     .badge-green { background: #166534; color: #86efac; }
 
-    .reload-box {
-      display: flex;
-      gap: 6px;
-    }
+    .reload-box { display: flex; gap: 6px; }
 
     .input-amount {
       background: #09090b;
@@ -235,7 +219,7 @@
       color: #fff;
       padding: 6px 10px;
       border-radius: 6px;
-      width: 70px;
+      width: 80px;
       text-align: right;
     }
 
@@ -250,9 +234,7 @@
       transition: background 0.2s;
     }
 
-    .btn-save:hover {
-      background: #dc2626;
-    }
+    .btn-save:hover { background: #dc2626; }
 
     .estado-sala-badge {
       display: inline-block;
@@ -261,19 +243,19 @@
       font-size: 0.75rem;
       font-weight: bold;
     }
+    .estado-abierta { background: #166534; color: #86efac; }
+    .estado-cerrada { background: #991b1b; color: #fca5a5; }
 
-    .estado-abierta {
-      background: #166534;
-      color: #86efac;
-    }
-
-    .estado-cerrada {
-      background: #991b1b;
-      color: #fca5a5;
-    }
+    /* NOTIFICACIONES TOAST */
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: #18181b; color: white; padding: 14px 20px; border-radius: 10px; border-left: 5px solid #ef4444; box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 14px; font-weight: 600; opacity: 0; transform: translateY(-10px); transition: all 0.3s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { border-left-color: #22c55e; }
   </style>
 </head>
 <body>
+
+<div id="toast-container"></div>
 
 <div class="admin-container">
 
@@ -283,7 +265,10 @@
   </div>
 
   <div class="section-card">
-    <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
+    <div class="section-header">
+      <div class="section-title">⚡ Estado y Control de Sala en Vivo</div>
+      <span id="badge-estado-sala" class="estado-sala-badge estado-cerrada">SINCRO...</span>
+    </div>
     
     <div class="room-controls">
       <button class="btn-room btn-open" onclick="controlarSala(true)">ABRIR SALA (Loop Continuo)</button>
@@ -292,7 +277,7 @@
 
     <div class="effects-container">
       <label class="toggle-group" for="toggle-sonido">
-        <span class="toggle-label">Sonido</span>
+        <span class="toggle-label">Sonido Audio</span>
         <span class="switch">
           <input type="checkbox" id="toggle-sonido" {% if sonido %}checked{% endif %} onchange="toggleEfecto('Sonido', this.checked)">
           <span class="slider"></span>
@@ -310,7 +295,7 @@
   </div>
 
   <div class="section-card">
-    <div class="section-title">👤 Usuarios y Saldos</div>
+    <div class="section-title" style="margin-bottom: 15px;">👤 Usuarios y Saldos</div>
     
     <div class="table-responsive">
       <table>
@@ -330,7 +315,7 @@
             <td class="balance-text" id="saldo-{{ usuario.id }}">S/ {{ usuario.saldo }}</td>
             <td>
               <div class="reload-box">
-                <input type="number" class="input-amount" id="input-{{ usuario.id }}" value="{{ usuario.saldo }}">
+                <input type="number" step="0.5" class="input-amount" id="input-{{ usuario.id }}" value="{{ usuario.saldo }}">
                 <button class="btn-save" onclick="guardarSaldo('{{ usuario.id }}', '{{ usuario.username }}')">Guardar</button>
               </div>
             </td>
@@ -342,7 +327,7 @@
   </div>
 
   <div class="section-card">
-    <div class="section-title">📜 Historial de Apuestas (últimas 50)</div>
+    <div class="section-title" style="margin-bottom: 15px;">📜 Historial de Apuestas (últimas 50)</div>
 
     <div class="table-responsive">
       <table>
@@ -390,6 +375,21 @@
 </div>
 
 <script>
+  function showToast(mensaje, tipo = 'info') {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast ${tipo === 'success' ? 'success' : ''}`;
+    toast.innerText = mensaje;
+    
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add("show"), 10);
+
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
   async function controlarSala(abrir) {
     try {
       const res = await fetch('/api/sala/estado', {
@@ -399,13 +399,14 @@
       });
       const data = await res.json();
       if (data.status === 'ok') {
-        alert(abrir ? "Sala ABIERTA. El loop continuo de la ruleta ha iniciado." : "Sala CERRADA. Las apuestas han sido congeladas.");
+        showToast(abrir ? "Sala ABIERTA: Loop iniciado" : "Sala CERRADA: Apuestas pausadas", "success");
+        actualizarEstadoSala();
       } else {
-        alert("Error: " + data.message);
+        showToast("Error: " + data.message, "error");
       }
     } catch (error) {
       console.error("Error al controlar sala:", error);
-      alert("Error de conexión con el servidor.");
+      showToast("Error de conexión con el servidor.", "error");
     }
   }
 
@@ -416,9 +417,10 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ tipo: tipo, estado: estado })
       });
-      console.log(`[ESP32]: ${tipo} -> ${estado ? "ACTIVADO" : "DESACTIVADO"}`);
+      showToast(`${tipo} -> ${estado ? "ACTIVADO" : "DESACTIVADO"}`, "success");
     } catch (error) {
       console.error("Error al cambiar efectos:", error);
+      showToast("Error enviando orden a ESP32", "error");
     }
   }
 
@@ -428,8 +430,7 @@
     const nuevoMonto = parseFloat(input.value);
 
     if (isNaN(nuevoMonto) || nuevoMonto < 0) {
-      alert("⚠️Ingresa un monto válido.");
-      return;
+      return showToast("Ingresa un monto válido", "error");
     }
 
     try {
@@ -441,16 +442,37 @@
       const data = await res.json();
       
       if (data.status === 'ok') {
-        elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(1)}`;
-        alert(`Saldo actualizado para ${nombreUsuario} (${idUsuario}): S/ ${nuevoMonto.toFixed(1)}`);
+        elementoSaldo.innerText = `S/ ${nuevoMonto.toFixed(2)}`;
+        showToast(`Saldo actualizado (${nombreUsuario}): S/ ${nuevoMonto.toFixed(2)}`, "success");
       } else {
-        alert("❌ Error: " + data.message);
+        showToast("Error: " + data.message, "error");
       }
     } catch (error) {
       console.error("Error al actualizar saldo:", error);
-      alert("Error de conexión al guardar el saldo.");
+      showToast("Error de conexión al guardar el saldo.", "error");
     }
   }
+
+  async function actualizarEstadoSala() {
+    try {
+      const res = await fetch('/estado_sala');
+      const state = await res.json();
+      const badge = document.getElementById("badge-estado-sala");
+
+      if (state.sistema_activo) {
+        badge.className = "estado-sala-badge estado-abierta";
+        badge.innerText = `ABIERTA (Ronda #${state.numero_ronda || 1})`;
+      } else {
+        badge.className = "estado-sala-badge estado-cerrada";
+        badge.innerText = "SALA CERRADA";
+      }
+    } catch (err) {
+      console.error("Error leyendo estado:", err);
+    }
+  }
+
+  setInterval(actualizarEstadoSala, 2000);
+  actualizarEstadoSala();
 </script>
 
 </body>

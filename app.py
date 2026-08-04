@@ -242,7 +242,6 @@ def bucle_ciclo_continuo():
                 break
 
             # FASE 2: GIRANDO RULETA (5 segundos)
-            # Calculamos número ganador y enviamos señal al ESP32 al iniciar el giro
             numero_ganador = 0
             try:
                 conn = get_db_connection()
@@ -652,6 +651,31 @@ def apostar_sala():
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/api/historial', methods=['GET'])
+def api_historial():
+    if 'user_id' not in session:
+        return jsonify({'status': 'error', 'message': 'No autorizado'}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM historial WHERE usuario_id = %s ORDER BY id DESC LIMIT 20', (session['user_id'],))
+    historial = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    res = []
+    for row in historial:
+        res.append({
+            'numero_elegido': row['numero_elegido'],
+            'color_elegido': row['color_elegido'],
+            'monto': row['monto'],
+            'numero_ganador': row['numero_ganador'],
+            'color_ganador': row['color_ganador'],
+            'resultado': row['resultado'],
+            'monto_ganado': row['monto_ganado']
+        })
+    return jsonify({'status': 'ok', 'historial': res})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

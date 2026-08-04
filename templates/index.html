@@ -82,6 +82,19 @@
         .num-cell:hover { transform: scale(1.03); }
         .num-cell.selected { border-color: #f59e0b !important; box-shadow: 0 0 12px #f59e0b; transform: scale(1.03); }
 
+        /* Efecto para Casilla Ganadora */
+        .num-cell.winner {
+            border-color: #22c55e !important;
+            box-shadow: 0 0 20px #22c55e, inset 0 0 10px #22c55e !important;
+            transform: scale(1.1);
+            animation: pulse-winner 0.8s infinite alternate;
+            z-index: 5;
+        }
+        @keyframes pulse-winner {
+            from { transform: scale(1.05); box-shadow: 0 0 15px #22c55e; }
+            to { transform: scale(1.15); box-shadow: 0 0 25px #22c55e, 0 0 35px #ffffff; }
+        }
+
         /* Fichas Rápidas */
         .chips-container { display: flex; gap: 8px; margin-bottom: 12px; }
         .chip-btn { flex: 1; padding: 10px; background: #27272a; border: 1px solid #3f3f46; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; text-align: center; font-size: 13px; }
@@ -255,7 +268,7 @@
         function construirTablero() {
             const grid = document.getElementById("tablero_grid");
             grid.innerHTML = `
-                <div class="num-cell verde zero selected" onclick="seleccionarNumero(0, 'Verde', this)">0</div>
+                <div id="cell-0" class="num-cell verde zero selected" onclick="seleccionarNumero(0, 'Verde', this)">0</div>
             `;
 
             for (let i = 1; i <= 23; i++) {
@@ -264,7 +277,7 @@
                 const colNombre = esRojo ? "Rojo" : "Negro";
 
                 grid.innerHTML += `
-                    <div class="num-cell ${colorClass}" onclick="seleccionarNumero(${i}, '${colNombre}', this)">
+                    <div id="cell-${i}" class="num-cell ${colorClass}" onclick="seleccionarNumero(${i}, '${colNombre}', this)">
                         ${i}
                     </div>
                 `;
@@ -292,7 +305,33 @@
             document.getElementById("overlay").classList.toggle("active");
         }
 
-        function openHistorial() { toggleMenu(); document.getElementById("modalHistorial").style.display = "flex"; }
+        async function openHistorial() { 
+            toggleMenu(); 
+            document.getElementById("modalHistorial").style.display = "flex"; 
+
+            try {
+                const res = await fetch('/api/historial');
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    const tbody = document.getElementById("historial-body");
+                    if (data.historial.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="color: #a1a1aa; padding: 20px;">Aún no tienes apuestas registradas</td></tr>';
+                    } else {
+                        tbody.innerHTML = data.historial.map(row => `
+                            <tr>
+                                <td>${row.numero_elegido}</td>
+                                <td>${row.color_elegido}</td>
+                                <td>S/ ${row.monto}</td>
+                                <td>${row.numero_ganador} (${row.color_ganador})</td>
+                                <td class="${row.resultado === 'GANASTE' ? 'win' : 'loss'}">${row.resultado}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (err) {
+                console.error("Error al cargar historial:", err);
+            }
+        }
         function closeHistorial() { document.getElementById("modalHistorial").style.display = "none"; }
 
         function openPasswordModal() { toggleMenu(); document.getElementById("modalPassword").style.display = "flex"; }
@@ -373,6 +412,9 @@
                 const timer = document.getElementById("timer");
                 const btn = document.getElementById("btn_apostar");
 
+                // Limpia el resalte del ganador previo
+                document.querySelectorAll('.num-cell').forEach(el => el.classList.remove('winner'));
+
                 if (state.saldo_usuario !== undefined) {
                     document.getElementById("saldo").innerText = state.saldo_usuario;
                 }
@@ -399,6 +441,12 @@
                         const numWin = state.ultimo_resultado.numero_ganador;
                         const colWin = state.ultimo_resultado.color_ganador || 'Verde';
                         txt.innerText = `🎉 GANADOR: N° ${numWin} (${colWin.toUpperCase()})`;
+
+                        // Resalta la casilla ganadora en la matriz
+                        const cellWin = document.getElementById(`cell-${numWin}`);
+                        if (cellWin) {
+                            cellWin.classList.add('winner');
+                        }
                     } else {
                         txt.innerText = "NÚMERO GANADOR";
                     }
