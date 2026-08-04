@@ -15,7 +15,7 @@ app.secret_key = "mecatroapuestas_secret_key"
 NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
 
 DURACION_APUESTAS = 20   # segundos para apostar
-DURACION_GIRANDO = 5     # segundos girando ruleta
+DURACION_GIRANDO = 11    # segundos girando ruleta
 DURACION_RESULTADO = 5   # segundos mostrando el número ganador
 
 def get_db_connection():

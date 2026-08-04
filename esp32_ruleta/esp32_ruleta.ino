@@ -4,7 +4,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// Configuración de la pantalla LCD I2C (Dirección 0x27, 16 columnas, 2 filas)
+// Configuración de la pantalla LCD I2C
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // Pines del Driver ULN2003 para el motor paso a paso
@@ -16,11 +16,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // Pin del Buzzer integrado
 const int PIN_BUZZER = 23;
 
+// Pin del Módulo LED
+const int PIN_LED = 4;
+
 // Configuración de red Wi-Fi
 const char* ssid = "XIOMARA-2.4G";
 const char* password = "Xnicole27";
 
-// URL del servidor Flask
+// URL de tu servidor en Render
 const char* serverUrl = "https://mecatroapuestas.onrender.com/api/esp32/cmd";
 
 // Secuencia de pasos para el motor 28BYJ-48
@@ -37,14 +40,13 @@ const int pasoSecuencia[8][4] = {
 
 int pasoActualMotor = 0;
 
-// ORDEN EXACTO DE LOS NÚMEROS EN LA RULETA FÍSICA (En sentido horario)
+// ORDEN EXACTO DE LOS NÚMEROS EN TU RULETA FÍSICA
 int ordenRuleta[24] = {0, 5, 10, 19, 8, 11, 22, 17, 2, 3, 12, 21, 20, 9, 14, 23, 18, 1, 4, 15, 6, 7, 16, 13};
-int indicePosicionActual = 0; // Posición inicial en el array (empieza en el 0)
+int indicePosicionActual = 0;
 
 const int PASOS_TOTALES_VUELTA = 4096;
-const float PASOS_POR_CASILLA = (float)PASOS_TOTALES_VUELTA / 24.0; // ~170.66 pasos por número
+const float PASOS_POR_CASILLA = (float)PASOS_TOTALES_VUELTA / 24.0;
 
-// Control de estados de la sala
 int ultimaRondaProcesada = -1;
 String ultimaFase = "";
 
@@ -91,8 +93,9 @@ int buscarIndiceNumero(int numeroBuscado) {
   return 0;
 }
 
-void ejecutarGiro(int numeroGanador, bool usarSonido) {
+void ejecutarGiro(int numeroGanador, bool usarSonido, bool usarLuces) {
   mostrarMensajeLCD("  GIRANDO...", " NUM: " + String(numeroGanador));
+  
   if (usarSonido) {
     tone(PIN_BUZZER, 800, 100);
   }
@@ -101,10 +104,15 @@ void ejecutarGiro(int numeroGanador, bool usarSonido) {
   int distanciaCasillas = (indiceDestino - indicePosicionActual + 24) % 24;
   
   int pasosCasillasDestino = round(distanciaCasillas * PASOS_POR_CASILLA);
-  int pasosVueltaShow = PASOS_TOTALES_VUELTA * 1; // 1 vuelta completa rápida
+  int pasosVueltaShow = PASOS_TOTALES_VUELTA * 1;
   
   int tramoFreno1 = round(pasosCasillasDestino * 0.5);
   int tramoFreno2 = pasosCasillasDestino - tramoFreno1;
+
+  // Si las luces están activadas en el admin, enciende el LED durante el giro
+  if (usarLuces) {
+    digitalWrite(PIN_LED, HIGH);
+  }
 
   darPasos(pasosVueltaShow, 1200);
   
@@ -122,8 +130,20 @@ void ejecutarGiro(int numeroGanador, bool usarSonido) {
   apagarMotor();
 
   mostrarMensajeLCD("GANADOR: " + String(numeroGanador), "¡EXCELENTE!");
+  
   if (usarSonido) {
     sonidoGanador();
+  }
+
+  // Parpadeo de victoria con el LED si están activadas las luces
+  if (usarLuces) {
+    for (int i = 0; i < 5; i++) {
+      digitalWrite(PIN_LED, LOW);
+      delay(100);
+      digitalWrite(PIN_LED, HIGH);
+      delay(100);
+    }
+    digitalWrite(PIN_LED, LOW);
   }
 }
 
@@ -135,6 +155,9 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(PIN_BUZZER, OUTPUT);
+  pinMode(PIN_LED, OUTPUT);
+
+  digitalWrite(PIN_LED, LOW);
 
   lcd.init();
   lcd.backlight();
@@ -147,9 +170,6 @@ void setup() {
   }
 
   Serial.println("\n¡WiFi Conectado!");
-  Serial.print("IP del ESP32: ");
-  Serial.println(WiFi.localIP());
-
   mostrarMensajeLCD(" IP ASIGNADA:", WiFi.localIP().toString());
   delay(2000);
   mostrarMensajeLCD("MECATROAPUESTAS", "LISTO PARA JUGAR");
@@ -172,11 +192,14 @@ void loop() {
         int ronda = doc["ronda"];
         int ganador = doc["ganador"];
         bool sonido = doc["sonido"] == 1;
+        bool luces = doc["luces"] == 1;
 
-        // Giro accionado al cambiar a la fase 'girando' en una nueva ronda
+        // Mantener el LED encendido en tiempo real si el admin activó las luces fuera del giro
+        digitalWrite(PIN_LED, luces ? HIGH : LOW);
+
         if (fase == "girando" && ronda != ultimaRondaProcesada) {
           ultimaRondaProcesada = ronda;
-          ejecutarGiro(ganador, sonido);
+          ejecutarGiro(ganador, sonido, luces);
         } 
         else if (fase == "apuestas" && ultimaFase != "apuestas") {
           mostrarMensajeLCD(" REALIZA TU", " APUESTA (R" + String(ronda) + ")");
@@ -191,5 +214,5 @@ void loop() {
     http.end();
   }
   
-  delay(500); // Polling constante cada medio segundo
+  delay(500);
 }
