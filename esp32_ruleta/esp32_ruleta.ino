@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Adafruit_NeoPixel.h>
 
 // Configuración de la pantalla LCD I2C
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -16,8 +17,11 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // Pin del Buzzer integrado
 const int PIN_BUZZER = 23;
 
-// Pin del Módulo LED
-const int PIN_LED = 4;
+// Configuración de Tira LED RGB WS2812B (Neopixel)
+#define PIN_LED 4
+#define NUM_LEDS 6 
+
+Adafruit_NeoPixel tira(NUM_LEDS, PIN_LED, NEO_GRB + NEO_KHZ800);
 
 // Configuración de red Wi-Fi
 const char* ssid = "XIOMARA-2.4G";
@@ -56,6 +60,19 @@ void mostrarMensajeLCD(String linea1, String linea2) {
   lcd.print(linea1);
   lcd.setCursor(0, 1);
   lcd.print(linea2);
+}
+
+// Control global de color para la tira RGB
+void encenderColor(uint32_t color) {
+  for (int i = 0; i < NUM_LEDS; i++) {
+    tira.setPixelColor(i, color);
+  }
+  tira.show();
+}
+
+void apagarLuces() {
+  tira.clear();
+  tira.show();
 }
 
 void darPasos(int cantidadPasos, int retardoMicrosegundos) {
@@ -109,9 +126,11 @@ void ejecutarGiro(int numeroGanador, bool usarSonido, bool usarLuces) {
   int tramoFreno1 = round(pasosCasillasDestino * 0.5);
   int tramoFreno2 = pasosCasillasDestino - tramoFreno1;
 
-  // Si las luces están activadas en el admin, enciende el LED durante el giro
+  // Si las luces están activadas en el admin, enciende en Naranja durante el giro
   if (usarLuces) {
-    digitalWrite(PIN_LED, HIGH);
+    encenderColor(tira.Color(255, 140, 0)); // Color Naranja
+  } else {
+    apagarLuces();
   }
 
   darPasos(pasosVueltaShow, 1200);
@@ -135,15 +154,15 @@ void ejecutarGiro(int numeroGanador, bool usarSonido, bool usarLuces) {
     sonidoGanador();
   }
 
-  // Parpadeo de victoria con el LED si están activadas las luces
+  // Parpadeo de victoria con la tira en Verde si están activadas las luces
   if (usarLuces) {
     for (int i = 0; i < 5; i++) {
-      digitalWrite(PIN_LED, LOW);
+      apagarLuces();
       delay(100);
-      digitalWrite(PIN_LED, HIGH);
+      encenderColor(tira.Color(0, 255, 0)); // Color Verde
       delay(100);
     }
-    digitalWrite(PIN_LED, LOW);
+    apagarLuces();
   }
 }
 
@@ -155,9 +174,10 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(PIN_BUZZER, OUTPUT);
-  pinMode(PIN_LED, OUTPUT);
 
-  digitalWrite(PIN_LED, LOW);
+  // Inicialización de la tira LED Neopixel
+  tira.begin();
+  apagarLuces();
 
   lcd.init();
   lcd.backlight();
@@ -194,18 +214,31 @@ void loop() {
         bool sonido = doc["sonido"] == 1;
         bool luces = doc["luces"] == 1;
 
-        // Mantener el LED encendido en tiempo real si el admin activó las luces fuera del giro
-        digitalWrite(PIN_LED, luces ? HIGH : LOW);
-
         if (fase == "girando" && ronda != ultimaRondaProcesada) {
           ultimaRondaProcesada = ronda;
           ejecutarGiro(ganador, sonido, luces);
         } 
-        else if (fase == "apuestas" && ultimaFase != "apuestas") {
-          mostrarMensajeLCD(" REALIZA TU", " APUESTA (R" + String(ronda) + ")");
+        else if (fase == "apuestas") {
+          if (ultimaFase != "apuestas") {
+            mostrarMensajeLCD(" REALIZA TU", " APUESTA (R" + String(ronda) + ")");
+          }
+          if (luces) {
+            encenderColor(tira.Color(0, 150, 255)); // Azul brillante durante apuestas
+          } else {
+            apagarLuces();
+          }
         } 
-        else if (fase == "resultado" && ultimaFase != "resultado") {
-          mostrarMensajeLCD("RONDA " + String(ronda) + " FINAL", "GANADOR: " + String(ganador));
+        else if (fase == "resultado") {
+          if (ultimaFase != "resultado") {
+            mostrarMensajeLCD("RONDA " + String(ronda) + " FINAL", "GANADOR: " + String(ganador));
+          }
+          if (!luces) {
+            apagarLuces();
+          }
+        }
+
+        if (!luces && fase != "girando") {
+          apagarLuces();
         }
 
         ultimaFase = fase;
