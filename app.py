@@ -8,22 +8,25 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import requests
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2.pool import ThreadedConnectionPool # 1. Añadido aquí
 
 app = Flask(__name__)
 app.secret_key = "mecatroapuestas_secret_key"
 
 NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
 
-DURACION_APUESTAS = 20   # segundos para apostar
-DURACION_GIRANDO = 11    # segundos girando ruleta
-DURACION_RESULTADO = 5   # segundos mostrando el número ganador
+DURACION_APUESTAS = 20  # segundos para apostar
+DURACION_GIRANDO = 11   # segundos girando ruleta
+DURACION_RESULTADO = 5  # segundos mostrando el número ganador
+
+# 2. Reemplazo de get_db_connection con el pool de conexiones
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:apuestafijas2A@db.voyfoiqionnheakpoint.supabase.co:6543/postgres")
+db_pool = ThreadedConnectionPool(1, 10, dsn=DATABASE_URL, cursor_factory=RealDictCursor)
 
 def get_db_connection():
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        database_url = "postgresql://postgres:apuestafijas2A@db.voyfoiqionnheakpoint.supabase.co:6543/postgres"
-    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
-
+    conn = db_pool.getconn()
+    conn.close = lambda: db_pool.putconn(conn)
+    return conn
 def init_db():
     try:
         conn = get_db_connection()
