@@ -432,7 +432,7 @@
                     btn.disabled = false;
                 } else if (state.fase === 'girando') {
                     dot.className = "dot closed";
-                    txt.innerText = "🌀 GIRANDO RULETA...";
+                    txt.innerText = " GIRANDO RULETA...";
                     timer.innerText = `${state.tiempo_restante}s`;
                     btn.disabled = true;
                 } else if (state.fase === 'resultado') {
@@ -440,7 +440,7 @@
                     if (state.ultimo_resultado) {
                         const numWin = state.ultimo_resultado.numero_ganador;
                         const colWin = state.ultimo_resultado.color_ganador || 'Verde';
-                        txt.innerText = `🎉 GANADOR: N° ${numWin} (${colWin.toUpperCase()})`;
+                        txt.innerText = ` GANADOR: N° ${numWin} (${colWin.toUpperCase()})`;
 
                         // Resalta la casilla ganadora en la matriz
                         const cellWin = document.getElementById(`cell-${numWin}`);
