@@ -10,7 +10,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
-app.secret_key = "mecatroapuestas_secret_key"
+app.secret_key = os.environ.get("SECRET_KEY", "mecatroapuestas_secret_key")
 
 NUMEROS_ROJOS = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22}
 
@@ -19,25 +19,21 @@ DURACION_GIRANDO = 11    # segundos girando ruleta
 DURACION_RESULTADO = 5   # segundos mostrando el número ganador
 
 def get_db_connection():
+    # La URL se lee SOLO de la variable de entorno DATABASE_URL (Render -> Environment).
+    # Usa la cadena "Session pooler" de Supabase, no la conexión directa db.xxx.supabase.co
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
-        database_url = "postgresql://postgres:apuestafijas2A@db.voyfoiqionnheakpoint.supabase.co:6543/postgres"
-    return psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        raise RuntimeError("Falta la variable de entorno DATABASE_URL")
+    return psycopg2.connect(database_url, cursor_factory=RealDictCursor, connect_timeout=5)
 
 def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # --- RESET COMPLETO DE TABLAS EN SUPABASE ---
-        cursor.execute("DROP TABLE IF EXISTS usuarios CASCADE;")
-        cursor.execute("DROP TABLE IF EXISTS historial CASCADE;")
-        cursor.execute("DROP TABLE IF EXISTS sala_live CASCADE;")
-        cursor.execute("DROP TABLE IF EXISTS apuestas_ronda CASCADE;")
-
-        # --- CREACIÓN DESDE CERO ---
+        # --- CREACIÓN SOLO SI NO EXISTEN (no borra datos) ---
         cursor.execute('''
-            CREATE TABLE usuarios (
+            CREATE TABLE IF NOT EXISTS usuarios (
                 id VARCHAR(50) PRIMARY KEY,
                 username VARCHAR(100) UNIQUE,
                 password VARCHAR(100),
@@ -47,7 +43,7 @@ def init_db():
         ''')
 
         cursor.execute('''
-            CREATE TABLE historial (
+            CREATE TABLE IF NOT EXISTS historial (
                 id SERIAL PRIMARY KEY,
                 usuario_id VARCHAR(50),
                 username VARCHAR(100),
@@ -63,7 +59,7 @@ def init_db():
         ''')
 
         cursor.execute('''
-            CREATE TABLE sala_live (
+            CREATE TABLE IF NOT EXISTS sala_live (
                 id INTEGER PRIMARY KEY,
                 sistema_activo BOOLEAN DEFAULT FALSE,
                 fase VARCHAR(20) DEFAULT 'apuestas',
@@ -82,7 +78,7 @@ def init_db():
         ''')
 
         cursor.execute('''
-            CREATE TABLE apuestas_ronda (
+            CREATE TABLE IF NOT EXISTS apuestas_ronda (
                 id SERIAL PRIMARY KEY,
                 numero_ronda INTEGER,
                 usuario_id VARCHAR(50),
@@ -95,16 +91,17 @@ def init_db():
 
         # Usuario administrador inicial para controlar el panel
         cursor.execute(
-            "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)",
+            "INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (username) DO NOTHING",
             ('M000', 'admin', 'admin123', 5000.0)
         )
 
-        cursor.execute("INSERT INTO sala_live (id) VALUES (1)")
+        cursor.execute("INSERT INTO sala_live (id) VALUES (1) ON CONFLICT (id) DO NOTHING")
 
         conn.commit()
         cursor.close()
         conn.close()
-        print("[DB Init] Base de datos reiniciada con éxito desde cero.")
+        print("[DB Init] Base de datos lista (sin borrar datos).")
     except Exception as e:
         print(f"[DB Init Error] {e}")
 
@@ -366,40 +363,48 @@ def login_view():
     if request.method == 'GET':
         return render_template('login.html')
 
-    data = request.json
-    username = data.get('username')
+    data = request.get_json(silent=True) or {}
+    username = (data.get('username') or '').strip()
     password = data.get('password')
     accion = data.get('action', 'login')
 
-    conn = get_db_connection()
+    if not username or not password:
+        return jsonify({'status': 'error', 'message': 'Complete todos los campos'}), 400
+
+    try:
+        conn = get_db_connection()
+    except Exception as e:
+        print(f"[Login Error conexión BD] {e}")
+        return jsonify({'status': 'error', 'message': 'No hay conexión con la base de datos. Intenta de nuevo en unos segundos.'}), 503
+
     cursor = conn.cursor()
+    try:
+        if accion == 'register':
+            cursor.execute('SELECT 1 FROM usuarios WHERE username = %s', (username,))
+            if cursor.fetchone():
+                return jsonify({'status': 'error', 'message': 'El usuario ya existe'}), 400
 
-    if accion == 'register':
-        cursor.execute('SELECT * FROM usuarios WHERE username = %s', (username,))
-        if cursor.fetchone():
-            cursor.close()
-            conn.close()
-            return jsonify({'status': 'error', 'message': 'El usuario ya existe'}), 400
-
-        nuevo_id = generar_siguiente_id()
-        cursor.execute("INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)", (nuevo_id, username, password, 200.0))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({'status': 'ok', 'user_id': nuevo_id})
-    else:
-        cursor.execute('SELECT * FROM usuarios WHERE username = %s AND password = %s', (username, password))
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if user:
-            session.clear()
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            return jsonify({'status': 'ok', 'user_id': user['id']})
+            nuevo_id = generar_siguiente_id()
+            cursor.execute("INSERT INTO usuarios (id, username, password, saldo) VALUES (%s, %s, %s, %s)", (nuevo_id, username, password, 200.0))
+            conn.commit()
+            return jsonify({'status': 'ok', 'user_id': nuevo_id})
         else:
+            cursor.execute('SELECT * FROM usuarios WHERE username = %s AND password = %s', (username, password))
+            user = cursor.fetchone()
+
+            if user:
+                session.clear()
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                return jsonify({'status': 'ok', 'user_id': user['id']})
             return jsonify({'status': 'error', 'message': 'Credenciales incorrectas'}), 400
+    except Exception as e:
+        conn.rollback()
+        print(f"[Login Error] {e}")
+        return jsonify({'status': 'error', 'message': 'Error interno del servidor'}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/logout')
 def logout():

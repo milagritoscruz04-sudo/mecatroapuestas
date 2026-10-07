@@ -217,18 +217,23 @@
 
             if(!u || !p) return alert("Por favor complete todos los campos.");
 
-            const res = await fetch('/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: u, password: p, action: esRegistro ? 'register' : 'login' })
-            });
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username: u, password: p, action: esRegistro ? 'register' : 'login' })
+                });
 
-            const data = await res.json();
-            if(data.status === 'ok') {
-                if(esRegistro) alert("¡Cuenta creada con éxito! Tu ID asignado es: " + data.user_id);
-                window.location.href = '/';
-            } else {
-                alert(data.message);
+                const data = await res.json();
+                if(data.status === 'ok') {
+                    if(esRegistro) alert("¡Cuenta creada con éxito! Tu ID asignado es: " + data.user_id);
+                    window.location.href = '/';
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error del servidor. Revisa los logs de Render.");
             }
         }
     </script>
